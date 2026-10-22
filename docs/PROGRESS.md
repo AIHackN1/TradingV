@@ -20,3 +20,10 @@
 1. Vercel 임포트 프로젝트가 실제로 생성되면 이름과 ID·Git 연결·운영 URL을 확인하고 최신 main을 배포, API/시세를 검증.
 2. 자체 SOXL 데이터 제공자 접근 검증 및 안정적인 데이터 경로 확보. 검증 전 자동 실시간 SOXL 알람 지원으로 표시하지 않을 것.
 3. APEX 추가 계산식의 수치/신호 정합성 테스트와 그리기 터치 UX 검증.
+
+## 추가 확인
+
+- 자체 수평선 생성 → undo → redo → 페이지 새로고침 후 1개 복원까지 브라우저 검증 통과.
+- TradingV에 전체 소스 25개 파일 반영 완료(99f406a5509ccfe29b37502caf71cfe9c2e89ece).
+- 2026-10-22 재시도에서도 Vercel `POST /v11/projects`는 `403 forbidden: You don't have permission to create the project` 반환. HAck의 다른 프로젝트를 재사용하거나 덮어쓰지 않음. CLI도 앞선 시도에서 로그인 정보 없음 확인.
+- 사용자가 Vercel 임포트를 완료하면 실제 생성된 프로젝트 ID와 URL을 기준으로 최신 TradingV main 배포를 이어갈 것. 추측한 URL을 운영 주소로 보고하지 말 것.

@@ -67,7 +67,7 @@ export class DrawingLayer{
     if(this.brushing){this.brushing=false;if(this.draft?.points.length>1)this.add(this.draft);this.draft=null;this.notify();}
     try{if(this.container.hasPointerCapture(e.pointerId))this.container.releasePointerCapture(e.pointerId);}catch{}
   }
-  cancel(){if(this.dragging){const d=this.dragging;this.items=this.items.map(i=>i.id===d.id?d.original:i);this.past.pop();}this.dragging=null;this.brushing=false;this.draft=null;this.notify();}
+  cancel(){if(this.dragging){const d=this.dragging;this.items=this.items.map(i=>i.id===d.id?d.original:i);this.past.pop();}this.dragging=null;this.brushing=false;this.draft=null;this.chart.applyOptions({handleScroll:this.tool==='select',handleScale:this.tool==='select'});this.notify();}
   id(){return globalThis.crypto?.randomUUID?.()??`drawing-${Date.now()}-${Math.random().toString(36).slice(2)}`;}
   add(d){const item=validateDrawing({id:this.id(),color:this.color,width:this.width,...d});this.snapshot();this.items.push(item);this.selected=item.id;this.commit();}
   render(target){if(!this.visible)return;target.useMediaCoordinateSpace(scope=>{
