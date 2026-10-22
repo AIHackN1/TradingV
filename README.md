@@ -68,3 +68,11 @@ Node.js 22 이상 권장. Vercel에서는 GitHub 저장소를 Import하고 Frame
 차트 엔진: [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts), Apache-2.0. 차트 내 TradingView attribution과 홈페이지 링크를 유지합니다. 아이콘: Lucide, ISC. 라이브러리 고지: `public/licenses/`.
 
 REA(MIT)는 조사 도구이며 런타임 의존성이나 TradingView 서버 복제 도구가 아닙니다. 참고 사이트의 비공개 코드나 유료 기능을 가져오지 않았습니다.
+
+## APEX 지표 모음 (2026-10-23)
+
+`APEX FINAL v1.7` 원본 전체는 `public/indicators/`에 보관하고 앱에서 다운로드할 수 있습니다. 현재 차트 EMA 구름대와 ASGMA 모멘텀·WhaleFlow 유동성 스윕·ATR 스파이크 구성요소를 제공합니다. 3종 후보의 상·하방 알람 6개도 추가했습니다. 후보 마커는 확정봉만 표시하며 개별 표시 설정과 백업을 지원합니다.
+
+구성요소 계산은 원본의 일부입니다. HTF 레짐·점수 게이트·쿨다운·포지션·분할청산이 적용된 원본 전략의 주문 신호와 동일하지 않습니다. 앱 내 문구도 이를 구분합니다. 원본과 동일한 시장/히스토리에서 수치 대조가 추가로 필요합니다. 코드의 과거 수익률 주석은 원본 기록이며 이 앱이 재검증한 성과가 아닙니다.
+
+현재 앱 자체에 필수 API 키/패스워드 환경변수는 없습니다. Vercel 배포 관리 인증은 앱의 런타임 환경변수와 별도입니다. 관리 API의 프로젝트 조회404를 앱의 키 누락 또는 페이지404로 단정하지 마세요.

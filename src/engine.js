@@ -1,3 +1,6 @@
+import {ema,rsi} from './technical.js';
+import {calculateApex} from './apex.js';
+export {ema,sma,rsi} from './technical.js';
 // Pure calculations shared by chart overlays and the alert monitor.
 export const DEFAULT_CLOUDS = [
   {name:'초록',fast:144,slow:155,color:'#19cc9a'},
@@ -17,23 +20,6 @@ export const MARKETS = [
   {symbol:'AVAXUSDT',name:'Avalanche',code:'AVAX',color:'#ee7781'},
   {symbol:'LINKUSDT',name:'Chainlink',code:'LINK',color:'#81aaff'},
 ];
-export function ema(values,period){
-  const k=2/(period+1); let previous;
-  return values.map(v=>{if(!Number.isFinite(v))return null;previous=previous===undefined?v:k*v+(1-k)*previous;return previous;});
-}
-export function sma(values,period){
-  return values.map((_,i)=>{const a=values.slice(Math.max(0,i-period+1),i+1);return a.length===period&&a.every(Number.isFinite)?a.reduce((s,v)=>s+v,0)/period:null;});
-}
-export function rsi(values,period=14){
-  const out=Array(values.length).fill(null);if(values.length<=period)return out;
-  let gain=0,loss=0;
-  for(let i=1;i<=period;i++){const d=values[i]-values[i-1];gain+=Math.max(d,0);loss+=Math.max(-d,0);}
-  gain/=period;loss/=period;
-  const value=()=>loss===0?(gain===0?50:100):100-100/(1+gain/loss);
-  out[period]=value();
-  for(let i=period+1;i<values.length;i++){const d=values[i]-values[i-1];gain=(gain*(period-1)+Math.max(d,0))/period;loss=(loss*(period-1)+Math.max(-d,0))/period;out[i]=value();}
-  return out;
-}
 export function normalizeKlines(rows){
   if(!Array.isArray(rows))throw new Error('잘못된 시세 응답입니다.');
   const sorted=rows.map(r=>({time:Number(r[0])/1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]),closeTime:Number(r[6])})).sort((a,b)=>a.time-b.time);
@@ -42,6 +28,8 @@ export function normalizeKlines(rows){
 }
 export function confirmedCandles(candles,now=Date.now()){return candles.filter(c=>c.closeTime<now);}
 export function conditionMatches(rule,candles){
+  const apexKeys={'asgma-up':'asgmaUp','asgma-down':'asgmaDown','sweep-up':'sweepUp','sweep-down':'sweepDown','spike-up':'spikeUp','spike-down':'spikeDown'};
+  if(apexKeys[rule.kind])return !!calculateApex(candles).at(-1)?.[apexKeys[rule.kind]];
   if(candles.length<2)return false;
   const prices=candles.map(c=>c.close),n=prices.length-1;
   if(rule.kind==='price-above')return prices[n-1]<=rule.threshold&&prices[n]>rule.threshold;
@@ -84,7 +72,8 @@ export function validateIndicator(config){
 export function validateRule(r){
   if(r.symbol==='SOXL'&&r.interval!=='1d')throw new Error('자체 SOXL 알람은 정규장 일봉만 지원합니다.');
   if(!MARKETS.some(m=>m.symbol===r.symbol)||!INTERVALS[r.interval])throw new Error('지원하지 않는 종목 또는 시간봉입니다.');
-  if(!['price-above','price-below','ema-up','ema-down','rsi-above','rsi-below'].includes(r.kind))throw new Error('지원하지 않는 알람 조건입니다.');
+  if(!['price-above','price-below','ema-up','ema-down','rsi-above','rsi-below','asgma-up','asgma-down','sweep-up','sweep-down','spike-up','spike-down'].includes(r.kind))throw new Error('지원하지 않는 알람 조건입니다.');
+  if(/^(asgma|sweep|spike)-/.test(r.kind))return r;
   if(r.kind.startsWith('ema')){
     if(!Number.isInteger(r.fast)||!Number.isInteger(r.slow)||Math.min(r.fast,r.slow)<1||Math.max(r.fast,r.slow)>400||r.fast===r.slow)throw new Error('서로 다른 EMA 기간(1~400)을 입력하세요.');
   }else if(!Number.isFinite(r.threshold)||r.threshold<=0||(r.kind.startsWith('rsi')&&r.threshold>=100))throw new Error('유효한 기준값을 입력하세요. RSI는 0~100 사이입니다.');

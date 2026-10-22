@@ -1,0 +1,478 @@
+// ═════════════════════════════════════════════════════════════════════════
+// APEX FINAL v1.7 — 4색 독립 EMA 구름 (ASGMA + WhaleFlow + TRINITY + v19.2 총결산)
+// ═════════════════════════════════════════════════════════════════════════
+// ▶ v1 → v1.1 (ETH 15분 실측: -512 USDT, 188거래, 승률 66% 진단 반영)
+//   [진단①] 손실의 86%(~440 USDT)가 수수료 — 거래 빈도 자체가 병
+//   [진단②] 본절 무장 1.5R 탓에 "TP1 찍고 반락" 구간이 순 -0.4R 출혈 지대
+//   [수정] 진입 점수 55→65, 쿨다운 4→8, 스윕 Z 1.2→1.5 (거래 수 대폭 축소)
+//   [수정] 촙 하드컷 신설 (CI 58 미만에서만 진입, 100 입력 시 해제)
+//   [수정] 본절 무장 1.5R→1.0R 기본값 + 인풋화 (약점 구간을 +0.4R로 전환)
+//   [수정] 레짐 플로어 — 최소 1개 TF가 신호 방향 정렬 필수 (역레짐 진입 차단)
+//   [수정] 손절 ATR 1.5→2.0 (수수료의 R 비중 축소 + 잔파도 스탑아웃 감소)
+//   [수정] 사다리 40/40/20 — TP1 40%@1R, TP2 40%@2R, 러너 20%
+//   [수정] Signal ID / UID 기본값 제거 — 설정창에서 직접 입력
+//
+// ▶ v1.1 → v1.2 (ETH 15분 +1,582 실측 반영 + "숏 연발 후 급등 전멸" 패턴 수술)
+//   [기본값] 사용자 최적화 채택 — 진입 점수 60 / 촙 하드컷 49 / 스윕 Z 2.0
+//   [규율] 풀손절(TP1 미도달 패배) 후 같은 방향 재진입 20봉 금지 → 복수 매매 차단
+//   [엔진C] 스파이크 반전(⚡) — ATR×2.5 이상 대형봉이 직전 흐름 반대로 마감하면
+//           보유 포지션 즉시 긴급탈출 + 반대 방향 플립 (점수/레짐/쿨다운 우회)
+//
+// ▶ v1.2 → v1.3 (실측 부검: 거래 107→166 폭증, 수익 +1,582→+893 반토막)
+//   [원인] ⚡가 무게이트 '자유 진입 엔진'이 되어 횡보장 대형봉마다 진입 + 플립 핑퐁
+//   [강등] ⚡는 긴급탈출 전용이 기본값. 반대 플립 진입은 옵션(기본 꺼짐)이며
+//          켜도 '포지션 보유 중 반대 스파이크'일 때만 — 무포지션 추격 진입 원천 제거
+//   [유지] 연패 방향 차단(풀손절 후 20봉)은 그대로 — 숏 연발 스팸 방지
+//
+// ▶ v1.3 → v1.4 (횡보 박스권 과잉 진입 수술: CI(14)는 창이 짧아 박스 다리를 추세로 오인)
+//   [필터] 터널 수축 필터 — TF1 터널(144/169) 폭이 ATR×1.0 미만이면 진입 금지
+//          (며칠짜리 박스권 = 터널이 납작하게 수렴 = 방향 없음, 베가스 원조 규칙)
+//   [규율] 서킷브레이커 — 방향 무관 2연속 풀손절 시 40봉 전체 휴식 (핑퐁 출혈 절단)
+//
+// ▶ v1.4 → v1.5 (구조적 사각지대 수술: 하락→상승 전환 구간에서 롱 경로 전멸 문제)
+//   [원인] 레짐 플로어·터널 수축 필터가 '전환 창구'를 정확히 차단 — 모든 롱 경로가
+//          추세 확립 후에만 열리는 구조였음
+//   [엔진D] 리버설 브레이크(R) — 레짐이 아직 반대(구식)일 때 40봉 극값을 거래량 동반
+//           마감 돌파하면 전환 의심 진입. 레짐이 정식 전환되면 자동 비활성(자기제한)
+//           → 점수/레짐/촙/터널 게이트 우회, 쿨다운·연패차단·브레이커는 적용
+//
+// ▶ v1.5 → FINAL (최종 정리)
+//   [강등] 리버설 엔진 기본 꺼짐 — 실측 수익 반토막 확인 (토글은 남겨둠)
+//   [추가] 구름대 5단 (흰/초/주/파/보) — 시각 판단 전용, 신호 로직 완전 미개입
+//   [개편] 구름대 v2 — 얇은 리본 5줄(틈새로 가격 이탈) → 경계 EMA 6개가 만드는
+//          "틈 없는 연속 밴드 5개" (8→676, 저점~고점 전체 커버, 경계 직접 조절)
+//          정배열(초→주→파→보 = 순차 지지) / 역배열(반대 = 순차 저항)
+//          이격 넓을수록 지지·저항 신뢰↑, 수렴·납작 = 보합(보수적으로)
+//   [분업] 기계 = 진입·사다리 청산·규율 자동 / 사람 = 구름대로 시장 구조 판독
+//
+// ▶ FINAL → v1.6 (레짐 4색 구름)
+//   [교체] 현재 차트 EMA 8~676 구름 → 확정 HTF 레짐 TF1·TF2 기반 구름
+//   [확장] 각 TF의 EMA 경계를 144 / 155 / 169 세 줄로 구성
+//          TF1 2개 범위 + TF2 2개 범위 = 초록 / 주황 / 파랑 / 보라 4색
+//   [보존] 구름은 시각 판단 전용. 진입·점수·청산·리스크 로직에는 개입하지 않음
+//
+// ▶ v1.6 → v1.7 (4색 독립 EMA 범위)
+//   [교체] TF1/TF2에 같은 144/155/169를 반복하던 구름 → 색마다 서로 다른 EMA 2줄
+//   [범위] 초록 144~155 / 주황 89~100 / 파랑 55~65 / 보라 34~40
+//   [간격] 피보나치 계열 34→55→89→144를 기준으로 층간 간격을 약 1.6배로 통일
+//   [시간축] 기본은 현재 차트(ETH 15분). 필요하면 설정에서 레짐 TF1/TF2 확정값 선택
+//   [보존] 기존 레짐·진입·청산·리스크·웹훅 로직은 변경하지 않음
+// ═════════════════════════════════════════════════════════════════════════
+// ▶ 통합 내역 (이번 개발 사이클의 모든 교훈 반영)
+//   [트리거]  듀얼 엔진 — A: ASGMA 모멘텀 크로스(추세 지속)
+//                        B: 유동성 스윕(고래 스탑헌트 흡수, 구조적 손절)
+//   [게이트]  하드 필터 AND 스택 폐기 → 컨플루언스 점수 단일 게이트 (거래 기근 해소)
+//             레짐(2TF 방향, 40) + 거래량/델타(30) + 촙 명료도(30) = 0~100점
+//   [청산]    사다리 40/40/20 — TP1 40%@1R(본절 무장), TP2 40%@2R, 러너 20%
+//             샹들리에 트레일은 2R 도달 후 ATR×2.0으로 추세 라이딩
+//             → "1R 찍고 반락" 함정 구간이 -0.4R 출혈에서 +0.4R 확보로 반전
+//   [정밀]    부분익절은 진입 계약수 기준 절대 수량 (qty_percent 재계산 함정 회피)
+//   [배제]    RSI50 긴급탈출(숏 익절 조기차단), 완전정렬 레짐(기근), 외부 라이브러리(에러원)
+//
+// ▶ 리페인팅 방지 헌법
+//   1. 상위TF = request.security(..., 값[1], lookahead_on) → 직전 확정 HTF봉 고정
+//   2. 신호 = barstate.isconfirmed → 봉 마감 확정 시 1회, 이후 절대 불변
+//   3. 델타 = 캔들 근사(플랜 무관, 히스토리 무제한) — 외부 데이터 의존 0
+//
+// ▶ 알림 설정: 조건 = 이 전략 → "주문 실행(Order fills)"
+//   메시지 칸에 {{strategy.order.alert_message}} 하나만 입력
+// ▶ 권장: BTCUSDT.P / ETHUSDT.P 15분봉 기준 튜닝 (5~30분 사용 가능)
+// ═════════════════════════════════════════════════════════════════════════
+//@version=6
+strategy('APEX FINAL v1.7 — 4색 독립 EMA 구름', overlay = true, process_orders_on_close = true, calc_on_every_tick = false, initial_capital = 14000, pyramiding = 0, commission_type = strategy.commission.percent, commission_value = 0.05, slippage = 2, default_qty_type = strategy.fixed, default_qty_value = 1)
+
+// ─────────────── ① 봇 / 웹훅 ───────────────
+grp_bot = '① 봇 메시지'
+bot_amount = input.string('4900', '1회 진입 금액 (USDT)', group = grp_bot)
+s_id = input.string('', 'Signal ID (봇에서 복사해 직접 입력)', group = grp_bot)
+u_id = input.string('', 'UID (직접 입력)', group = grp_bot)
+
+msg_long_entry = '{"symbol":"{{ticker}}","side":"buy","positionSide":"BOTH","investmentType":"notional_value","amount":"' + bot_amount + '","price":"market","reduceOnly":false,"positionMode":"one_way_mode","signalId":"' + s_id + '","uid":"' + u_id + '"}'
+msg_long_exit = '{"symbol":"{{ticker}}","side":"sell","positionSide":"BOTH","qty":"{{strategy.order.contracts}}","type":"MARKET","reduceOnly":true,"positionMode":"one_way_mode","signalId":"' + s_id + '","uid":"' + u_id + '"}'
+msg_short_entry = '{"symbol":"{{ticker}}","side":"sell","positionSide":"BOTH","investmentType":"notional_value","amount":"' + bot_amount + '","price":"market","reduceOnly":false,"positionMode":"one_way_mode","signalId":"' + s_id + '","uid":"' + u_id + '"}'
+msg_short_exit = '{"symbol":"{{ticker}}","side":"buy","positionSide":"BOTH","qty":"{{strategy.order.contracts}}","type":"MARKET","reduceOnly":true,"positionMode":"one_way_mode","signalId":"' + s_id + '","uid":"' + u_id + '"}'
+
+// ─────────────── ② 트리거 A: ASGMA 코어 ───────────────
+grp_a = '② ASGMA 트리거'
+length1 = input.int(26, '룩백', minval = 1, group = grp_a)
+gamaLength = input.int(14, 'GAMA 기간', minval = 1, group = grp_a)
+
+src = ohlc4
+pchange = ta.change(src, 1) / src * 100
+avpchange = ta.alma(pchange, length1, 0.85, 7)
+
+rsi = ta.rsi(close, 14)
+rsiL = rsi > rsi[1]
+rsiS = rsi < rsi[1]
+rsi_overbought = rsi > 70
+rsi_oversold = rsi < 30
+
+momm = ta.change(close)
+m1 = momm >= 0 ? momm : 0.0
+m2 = momm >= 0 ? 0.0 : -momm
+sm1 = ta.sma(m1, 9)
+sm2 = ta.sma(m2, 9)
+chandeMO = sm1 + sm2 == 0 ? 0.0 : 100 * (sm1 - sm2) / (sm1 + sm2)
+cL = chandeMO > chandeMO[1]
+cS = chandeMO < chandeMO[1]
+
+sigma20 = ta.stdev(close, 20)
+float gma = 0.0
+float sumW = 0.0
+for i = 0 to gamaLength - 1
+    w = math.exp(-math.pow((i - (gamaLength - 1)) / (2 * math.max(nz(sigma20), 1e-10)), 2) / 2)
+    v = ta.highest(avpchange, i + 1) + ta.lowest(avpchange, i + 1)
+    gma += v * w
+    sumW += w
+gma := sumW > 0 ? gma / sumW / 2 : nz(gma[1])
+gma := ta.ema(gma, 7)
+
+bool asgma_up = ta.crossover(avpchange, gma) and rsiL and cL and not rsi_overbought
+bool asgma_dn = ta.crossunder(avpchange, gma) and rsiS and cS and not rsi_oversold
+
+// ─────────────── ③ 트리거 B: 유동성 스윕 (캔들 근사 델타) ───────────────
+grp_b = '③ 스윕 트리거'
+sweep_len = input.int(20, '유동성 룩백', group = grp_b)
+wick_min = input.float(30.0, '최소 꼬리 비율 %', group = grp_b)
+sweep_z = input.float(2.0, '스윕 최소 거래량 Z (↑=굵은 스탑헌트만)', step = 0.25, group = grp_b)
+
+float bar_rng = high - low
+float delta = bar_rng > 0 ? volume * (close - open) / bar_rng : 0.0
+atr = ta.atr(14)
+
+vol_len = input.int(50, '거래량 Z 기간', group = grp_b)
+vol_ma = ta.sma(volume, vol_len)
+vol_sd = ta.stdev(volume, vol_len)
+float vol_z = not na(vol_sd) and vol_sd > 0 ? (volume - vol_ma) / vol_sd : 0.0
+
+float liqLow = ta.lowest(low, sweep_len)[1]
+float liqHigh = ta.highest(high, sweep_len)[1]
+float loWickPct = bar_rng > 0 ? (math.min(open, close) - low) / bar_rng * 100 : 0.0
+float hiWickPct = bar_rng > 0 ? (high - math.max(open, close)) / bar_rng * 100 : 0.0
+
+bool sweep_up = not na(liqLow) and low < liqLow and close > liqLow and loWickPct >= wick_min and vol_z >= sweep_z and (delta > 0 or close > (high + low) / 2)
+bool sweep_dn = not na(liqHigh) and high > liqHigh and close < liqHigh and hiWickPct >= wick_min and vol_z >= sweep_z and (delta < 0 or close < (high + low) / 2)
+
+// ─────────────── ④ 컨플루언스 점수 (단일 게이트) ───────────────
+grp_s = '④ 점수 게이트'
+tf1 = input.timeframe('60', '레짐 TF 1', group = grp_s)
+tf2 = input.timeframe('240', '레짐 TF 2', group = grp_s)
+thresh = input.float(60, '진입 최소 점수 (↑=신호 감소·정확도 상승, 55~70 튜닝)', minval = 0, maxval = 100, group = grp_s)
+chop_max = input.float(49, '촙 하드컷 CI (미만에서만 진입, 100=해제)', group = grp_s)
+gap_k = input.float(1.0, '터널 수축 필터 = TF1 터널 폭 ≥ ATR × (0=해제, ↑=빡빡)', step = 0.25, group = grp_s)
+
+r1f = request.security(syminfo.tickerid, tf1, ta.ema(close, 155)[1], lookahead = barmerge.lookahead_on)
+r1s = request.security(syminfo.tickerid, tf1, ta.ema(close, 162)[1], lookahead = barmerge.lookahead_on)
+r2f = request.security(syminfo.tickerid, tf2, ta.ema(close, 155)[1], lookahead = barmerge.lookahead_on)
+r2s = request.security(syminfo.tickerid, tf2, ta.ema(close, 162)[1], lookahead = barmerge.lookahead_on)
+
+bool d1_up = not na(r1f) and not na(r1s) and r1f > r1s
+bool d1_dn = not na(r1f) and not na(r1s) and r1f < r1s
+bool d2_up = not na(r2f) and not na(r2s) and r2f > r2s
+bool d2_dn = not na(r2f) and not na(r2s) and r2f < r2s
+
+// 터널 수축 = 횡보 박스권: TF1 터널 폭이 ATR 대비 좁으면 방향성 없음
+float tunnel_gap = math.abs(r1f - r1s)
+bool gap_ok = gap_k <= 0 or (not na(tunnel_gap) and tunnel_gap >= atr * gap_k)
+
+// 촙 명료도 (61.8=횡보 0점 ~ 30=추세 만점)
+float chop_rng = ta.highest(high, 14) - ta.lowest(low, 14)
+float chop_sum = math.sum(ta.tr(true), 14)
+float ci = 100.0
+if not na(chop_rng) and not na(chop_sum) and chop_rng > 0
+    ci := 100 * math.log10(chop_sum / chop_rng) / math.log10(14)
+float chop_frac = math.min(math.max((61.8 - ci) / (61.8 - 30.0), 0), 1)
+bool chop_ok = ci < chop_max
+float vol_frac = math.min(math.max(vol_z, 0) / 2.0, 1.0)
+
+float score_l = (d1_up ? 20 : 0) + (d2_up ? 20 : 0) + vol_frac * 15 + (delta > 0 ? 15 : 0) + chop_frac * 30
+float score_s = (d1_dn ? 20 : 0) + (d2_dn ? 20 : 0) + vol_frac * 15 + (delta < 0 ? 15 : 0) + chop_frac * 30
+
+// ─────────────── ④.5 스파이크 반전 엔진 + 연패 방향 차단 ───────────────
+grp_r = '④.5 스파이크/규율'
+use_spike = input.bool(true, '스파이크 반전 엔진 (급변동 즉시 탈출+플립)', group = grp_r)
+spike_k = input.float(2.5, '스파이크 = ATR × 이상 대형봉 (↓=민감)', step = 0.25, group = grp_r)
+spike_flip = input.bool(false, '⚡ 반대 플립 진입 허용 (기본: 탈출만 수행)', group = grp_r)
+loss_block = input.int(20, '풀손절 후 같은 방향 금지 봉수 (0=해제)', minval = 0, group = grp_r)
+pause_bars = input.int(40, '2연속 풀손절 시 전체 휴식 봉수 (0=해제)', minval = 0, group = grp_r)
+use_rev = input.bool(false, '리버설 브레이크 엔진 (기본 꺼짐: 실측 수익 저하)', group = grp_r)
+rev_len = input.int(40, '리버설 = N봉 극값 돌파 마감 (↑=굵은 전환만)', minval = 10, group = grp_r)
+
+// 직전 흐름(10봉)과 반대로 터지는 대형 확정봉 + 강한 마감 + 거래량 = V자 반전 의심
+float drift = close[1] - close[11]
+bool spike_up = use_spike and not na(atr) and bar_rng >= atr * spike_k and close >= high - bar_rng * 0.25 and vol_z >= 1.5 and drift < 0
+bool spike_dn = use_spike and not na(atr) and bar_rng >= atr * spike_k and close <= low + bar_rng * 0.25 and vol_z >= 1.5 and drift > 0
+
+// 리버설 브레이크(R): 레짐이 아직 반대일 때 구조 돌파 마감 = 추세 전환 의심
+// 레짐이 정식 전환되면 (d1_dn/d2_dn 소멸) 자동으로 꺼진다 → 추세 중 스팸 불가
+float rev_hi = ta.highest(high, rev_len)[1]
+float rev_lo = ta.lowest(low, rev_len)[1]
+bool rev_long = use_rev and not na(rev_hi) and close > rev_hi and close > open and vol_z >= 1.0 and (d1_dn or d2_dn)
+bool rev_short = use_rev and not na(rev_lo) and close < rev_lo and close < open and vol_z >= 1.0 and (d1_up or d2_up)
+
+// 풀손절 직후 같은 방향 재진입 금지 (같은 아이디어로 계속 얻어맞는 것 차단)
+var int long_block_until = -1
+var int short_block_until = -1
+var int consec_full_losses = 0
+var int pause_until = -1
+bool long_allowed = bar_index > long_block_until
+bool short_allowed = bar_index > short_block_until
+bool pause_ok = bar_index > pause_until
+
+// ─────────────── ⑤ 최종 신호 (봉 마감 확정, 점수 우위 방향만) ───────────────
+grp_x = '⑤ 진입/청산'
+cooldown = input.int(8, '재진입 대기 봉수 (↑=거래·수수료 감소)', minval = 0, group = grp_x)
+sl_mult = input.float(2.0, '[A] 손절 = ATR × (↑=잔파도 내성·수수료 비중↓)', step = 0.1, group = grp_x)
+tp2_rr = input.float(2.0, 'TP2/트레일 무장 = 리스크 ×', step = 0.25, group = grp_x)
+trail_mult = input.float(2.0, '러너 트레일 = ATR ×', step = 0.1, group = grp_x)
+be_rr = input.float(1.0, '본절 무장 = 리스크 × 도달 후 (1.0=약점구간 봉쇄 / 1.5=흔들기 내성)', step = 0.25, group = grp_x)
+
+var int last_entry_bar = -99999
+bool cool_ok = bar_index - last_entry_bar >= cooldown
+
+bool raw_long = asgma_up or sweep_up
+bool raw_short = asgma_dn or sweep_dn
+bool gate_long = raw_long and not raw_short and (d1_up or d2_up) and score_l >= thresh and score_l > score_s and chop_ok and gap_ok and cool_ok
+bool gate_short = raw_short and not raw_long and (d1_dn or d2_dn) and score_s >= thresh and score_s > score_l and chop_ok and gap_ok and cool_ok
+// 스파이크(⚡) 플립은 '숏 보유 중 상방 스파이크'처럼 포지션 구출 상황에서만 허용
+bool spike_flip_long = spike_flip and spike_up and strategy.position_size < 0
+bool spike_flip_short = spike_flip and spike_dn and strategy.position_size > 0
+bool longCondition = (gate_long or spike_flip_long or (rev_long and cool_ok)) and not spike_dn and long_allowed and pause_ok and barstate.isconfirmed
+bool shortCondition = (gate_short or spike_flip_short or (rev_short and cool_ok)) and not spike_up and short_allowed and pause_ok and barstate.isconfirmed
+
+// ─────────────── ⑥ 진입 (신호봉 마감가 기준 사다리 확정) ───────────────
+float ch_long = ta.highest(high, 10) - atr * trail_mult
+float ch_short = ta.lowest(low, 10) + atr * trail_mult
+
+var float entry_ref = na
+var float sl_init = na
+var float tp1_price = na
+var float tp2_price = na
+var float entry_qty = na
+var bool tp1_hit = false
+var bool tp2_hit = false
+var bool be_armed = false
+var float trail_stop = na
+var int last_dir = 0
+
+float amt = nz(str.tonumber(bot_amount), 4900)
+float order_qty = amt / close
+
+if longCondition and strategy.position_size <= 0
+    if strategy.position_size < 0
+        strategy.close_all(comment = '스위칭 청산', alert_message = msg_short_exit)
+    entry_ref := close
+    sl_init := sweep_up ? low - atr * 0.25 : close - atr * sl_mult
+    float risk_l = close - sl_init
+    tp1_price := close + risk_l
+    tp2_price := close + risk_l * tp2_rr
+    entry_qty := order_qty
+    tp1_hit := false
+    tp2_hit := false
+    be_armed := false
+    trail_stop := na
+    last_entry_bar := bar_index
+    last_dir := 1
+    strategy.entry('Long', strategy.long, qty = order_qty, comment = spike_up ? '스파이크 롱' : rev_long ? '리버설 롱' : sweep_up ? '스윕 롱' : 'ASGMA 롱', alert_message = msg_long_entry)
+
+if shortCondition and strategy.position_size >= 0
+    if strategy.position_size > 0
+        strategy.close_all(comment = '스위칭 청산', alert_message = msg_long_exit)
+    entry_ref := close
+    sl_init := sweep_dn ? high + atr * 0.25 : close + atr * sl_mult
+    float risk_s = sl_init - close
+    tp1_price := close - risk_s
+    tp2_price := close - risk_s * tp2_rr
+    entry_qty := order_qty
+    tp1_hit := false
+    tp2_hit := false
+    be_armed := false
+    trail_stop := na
+    last_entry_bar := bar_index
+    last_dir := -1
+    strategy.entry('Short', strategy.short, qty = order_qty, comment = spike_dn ? '스파이크 숏' : rev_short ? '리버설 숏' : sweep_dn ? '스윕 숏' : 'ASGMA 숏', alert_message = msg_short_entry)
+
+// 스파이크 긴급탈출 — 플립 여부와 무관하게 탈출은 항상 보장
+bool esc_short = use_spike and strategy.position_size < 0 and spike_up and not longCondition and barstate.isconfirmed
+bool esc_long = use_spike and strategy.position_size > 0 and spike_dn and not shortCondition and barstate.isconfirmed
+if esc_short
+    strategy.close_all(comment = '스파이크 긴급탈출', alert_message = msg_short_exit)
+if esc_long
+    strategy.close_all(comment = '스파이크 긴급탈출', alert_message = msg_long_exit)
+
+// ─────────────── ⑦ 포지션 관리 (v19.2 사다리) ───────────────
+bool inLong = strategy.position_size > 0
+bool inShort = strategy.position_size < 0
+bool hold_long = inLong and not shortCondition
+bool hold_short = inShort and not longCondition
+bool manage_long = hold_long or (longCondition and not inLong)
+bool manage_short = hold_short or (shortCondition and not inShort)
+
+// 목표가/무장 레벨 터치 추적 (진입 봉 다음 봉부터)
+if hold_long and not tp1_hit and not na(tp1_price) and high >= tp1_price
+    tp1_hit := true
+if hold_short and not tp1_hit and not na(tp1_price) and low <= tp1_price
+    tp1_hit := true
+if hold_long and not tp2_hit and not na(tp2_price) and high >= tp2_price
+    tp2_hit := true
+if hold_short and not tp2_hit and not na(tp2_price) and low <= tp2_price
+    tp2_hit := true
+if hold_long and not be_armed and not na(entry_ref) and not na(sl_init) and high >= entry_ref + (entry_ref - sl_init) * be_rr
+    be_armed := true
+if hold_short and not be_armed and not na(entry_ref) and not na(sl_init) and low <= entry_ref - (sl_init - entry_ref) * be_rr
+    be_armed := true
+
+// 러너 샹들리에 (2R 도달 후 무장, 유리한 방향으로만 래칫)
+if hold_long and tp2_hit
+    trail_stop := na(trail_stop) ? ch_long : math.max(trail_stop, ch_long)
+if hold_short and tp2_hit
+    trail_stop := na(trail_stop) ? ch_short : math.min(trail_stop, ch_short)
+
+float stop_long = na
+float stop_short = na
+if manage_long
+    stop_long := sl_init
+    if be_armed
+        stop_long := math.max(stop_long, entry_ref)
+    if tp2_hit and not na(trail_stop) and inLong
+        stop_long := math.max(stop_long, trail_stop)
+    if not tp1_hit
+        strategy.exit('TP1L', from_entry = 'Long', limit = tp1_price, qty = entry_qty * 0.40, comment = 'TP1', alert_message = msg_long_exit)
+    if not tp2_hit
+        strategy.exit('TP2L', from_entry = 'Long', limit = tp2_price, qty = entry_qty * 0.40, comment = 'TP2', alert_message = msg_long_exit)
+    strategy.exit('XL', from_entry = 'Long', stop = stop_long, comment = '롱 청산', alert_message = msg_long_exit)
+if manage_short
+    stop_short := sl_init
+    if be_armed
+        stop_short := math.min(stop_short, entry_ref)
+    if tp2_hit and not na(trail_stop) and inShort
+        stop_short := math.min(stop_short, trail_stop)
+    if not tp1_hit
+        strategy.exit('TP1S', from_entry = 'Short', limit = tp1_price, qty = entry_qty * 0.40, comment = 'TP1', alert_message = msg_short_exit)
+    if not tp2_hit
+        strategy.exit('TP2S', from_entry = 'Short', limit = tp2_price, qty = entry_qty * 0.40, comment = 'TP2', alert_message = msg_short_exit)
+    strategy.exit('XS', from_entry = 'Short', stop = stop_short, comment = '숏 청산', alert_message = msg_short_exit)
+
+// 청산 완료 시 상태 리셋
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    // 풀손절 판정: TP1도 못 찍고 죽었으면 그 방향 잠금 + 연속 카운트
+    if not tp1_hit
+        if loss_block > 0
+            if last_dir == 1
+                long_block_until := bar_index + loss_block
+            if last_dir == -1
+                short_block_until := bar_index + loss_block
+        consec_full_losses += 1
+        if pause_bars > 0 and consec_full_losses >= 2
+            pause_until := bar_index + pause_bars
+            consec_full_losses := 0
+    else
+        consec_full_losses := 0
+    tp1_hit := false
+    tp2_hit := false
+    be_armed := false
+    trail_stop := na
+    entry_ref := na
+    sl_init := na
+    tp1_price := na
+    tp2_price := na
+    entry_qty := na
+
+// ─────────────── ⑧ 시각화 ───────────────
+float disp_stop = inLong ? stop_long : inShort ? stop_short : na
+float disp_tp1 = (inLong or inShort) and not tp1_hit ? tp1_price : na
+float disp_tp2 = (inLong or inShort) and not tp2_hit ? tp2_price : na
+plot(disp_stop, '스탑', color = color.new(color.red, 0), style = plot.style_linebr)
+plot(disp_tp1, 'TP1', color = color.new(color.teal, 0), style = plot.style_linebr)
+plot(disp_tp2, 'TP2', color = color.new(color.green, 0), style = plot.style_linebr)
+
+// ─────────────── 4색 독립 EMA 구름 (시각 판단 전용 — 신호 로직 미개입) ───────────────
+// 원본 가이드의 "칸마다 봉 수를 따로 설정"하는 구조에 맞춰 색마다 EMA 경계 2개를 둔다.
+// 기본 중심 간격은 피보나치 계열 34→55→89→144를 따라 약 1.6배로 벌어진다.
+// 현재 차트 모드에서는 실시간 15분 EMA, TF1/TF2 모드에서는 직전 확정 HTF EMA만 사용한다.
+grp_c = '⑦ 4색 독립 EMA 구름 (시각 전용)'
+show_cloud = input.bool(true, '4색 구름대 표시 (초/주/파/보)', group = grp_c)
+show_edges = input.bool(true, '구름 경계선 표시', group = grp_c)
+cloud_tf_mode = input.string('현재 차트', '구름 계산 시간축', options = ['현재 차트', '레짐 TF1', '레짐 TF2'], group = grp_c)
+
+green_len_1 = input.int(144, '초록 EMA 1', minval = 1, group = grp_c, inline = 'green')
+green_len_2 = input.int(155, 'EMA 2', minval = 1, group = grp_c, inline = 'green')
+orange_len_1 = input.int(89, '주황 EMA 1', minval = 1, group = grp_c, inline = 'orange')
+orange_len_2 = input.int(100, 'EMA 2', minval = 1, group = grp_c, inline = 'orange')
+blue_len_1 = input.int(55, '파랑 EMA 1', minval = 1, group = grp_c, inline = 'blue')
+blue_len_2 = input.int(65, 'EMA 2', minval = 1, group = grp_c, inline = 'blue')
+purple_len_1 = input.int(34, '보라 EMA 1', minval = 1, group = grp_c, inline = 'purple')
+purple_len_2 = input.int(40, 'EMA 2', minval = 1, group = grp_c, inline = 'purple')
+
+cloud_opacity = input.int(82, '구름 투명도 (0=진함 / 100=숨김)', minval = 0, maxval = 100, group = grp_c)
+edge_opacity = input.int(35, '경계선 투명도', minval = 0, maxval = 100, group = grp_c)
+
+// 현재 차트 EMA: 봉이 진행되는 동안 자연스럽게 갱신된다.
+float lc_green_1 = ta.ema(close, green_len_1)
+float lc_green_2 = ta.ema(close, green_len_2)
+float lc_orange_1 = ta.ema(close, orange_len_1)
+float lc_orange_2 = ta.ema(close, orange_len_2)
+float lc_blue_1 = ta.ema(close, blue_len_1)
+float lc_blue_2 = ta.ema(close, blue_len_2)
+float lc_purple_1 = ta.ema(close, purple_len_1)
+float lc_purple_2 = ta.ema(close, purple_len_2)
+
+// 상위 시간축 선택용 확정값: [1] + lookahead_on으로 진행 중 HTF봉 리페인팅을 막는다.
+[tf1_green_1, tf1_green_2, tf1_orange_1, tf1_orange_2, tf1_blue_1, tf1_blue_2, tf1_purple_1, tf1_purple_2] = request.security(syminfo.tickerid, tf1, [ta.ema(close, green_len_1)[1], ta.ema(close, green_len_2)[1], ta.ema(close, orange_len_1)[1], ta.ema(close, orange_len_2)[1], ta.ema(close, blue_len_1)[1], ta.ema(close, blue_len_2)[1], ta.ema(close, purple_len_1)[1], ta.ema(close, purple_len_2)[1]], gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_on)
+[tf2_green_1, tf2_green_2, tf2_orange_1, tf2_orange_2, tf2_blue_1, tf2_blue_2, tf2_purple_1, tf2_purple_2] = request.security(syminfo.tickerid, tf2, [ta.ema(close, green_len_1)[1], ta.ema(close, green_len_2)[1], ta.ema(close, orange_len_1)[1], ta.ema(close, orange_len_2)[1], ta.ema(close, blue_len_1)[1], ta.ema(close, blue_len_2)[1], ta.ema(close, purple_len_1)[1], ta.ema(close, purple_len_2)[1]], gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_on)
+
+f_cloud_value(float local_value, float tf1_value, float tf2_value) =>
+    cloud_tf_mode == '현재 차트' ? local_value : cloud_tf_mode == '레짐 TF1' ? tf1_value : tf2_value
+
+float cloud_green_1 = f_cloud_value(lc_green_1, tf1_green_1, tf2_green_1)
+float cloud_green_2 = f_cloud_value(lc_green_2, tf1_green_2, tf2_green_2)
+float cloud_orange_1 = f_cloud_value(lc_orange_1, tf1_orange_1, tf2_orange_1)
+float cloud_orange_2 = f_cloud_value(lc_orange_2, tf1_orange_2, tf2_orange_2)
+float cloud_blue_1 = f_cloud_value(lc_blue_1, tf1_blue_1, tf2_blue_1)
+float cloud_blue_2 = f_cloud_value(lc_blue_2, tf1_blue_2, tf2_blue_2)
+float cloud_purple_1 = f_cloud_value(lc_purple_1, tf1_purple_1, tf2_purple_1)
+float cloud_purple_2 = f_cloud_value(lc_purple_2, tf1_purple_2, tf2_purple_2)
+
+color cloud_green = color.rgb(0, 200, 110)
+color cloud_orange = color.rgb(255, 145, 0)
+color cloud_blue = color.rgb(0, 175, 220)
+color cloud_purple = color.rgb(205, 70, 255)
+int edge_alpha = show_edges ? edge_opacity : 100
+
+p_green_1 = plot(show_cloud ? cloud_green_1 : na, '초록 구름 EMA 144', color = color.new(cloud_green, edge_alpha), linewidth = 1)
+p_green_2 = plot(show_cloud ? cloud_green_2 : na, '초록 구름 EMA 155', color = color.new(cloud_green, edge_alpha), linewidth = 1)
+p_orange_1 = plot(show_cloud ? cloud_orange_1 : na, '주황 구름 EMA 89', color = color.new(cloud_orange, edge_alpha), linewidth = 1)
+p_orange_2 = plot(show_cloud ? cloud_orange_2 : na, '주황 구름 EMA 100', color = color.new(cloud_orange, edge_alpha), linewidth = 1)
+p_blue_1 = plot(show_cloud ? cloud_blue_1 : na, '파랑 구름 EMA 55', color = color.new(cloud_blue, edge_alpha), linewidth = 1)
+p_blue_2 = plot(show_cloud ? cloud_blue_2 : na, '파랑 구름 EMA 65', color = color.new(cloud_blue, edge_alpha), linewidth = 1)
+p_purple_1 = plot(show_cloud ? cloud_purple_1 : na, '보라 구름 EMA 34', color = color.new(cloud_purple, edge_alpha), linewidth = 1)
+p_purple_2 = plot(show_cloud ? cloud_purple_2 : na, '보라 구름 EMA 40', color = color.new(cloud_purple, edge_alpha), linewidth = 1)
+
+fill(p_green_1, p_green_2, color = color.new(cloud_green, cloud_opacity), title = '초록 구름 — EMA 144~155')
+fill(p_orange_1, p_orange_2, color = color.new(cloud_orange, cloud_opacity), title = '주황 구름 — EMA 89~100')
+fill(p_blue_1, p_blue_2, color = color.new(cloud_blue, cloud_opacity), title = '파랑 구름 — EMA 55~65')
+fill(p_purple_1, p_purple_2, color = color.new(cloud_purple, cloud_opacity), title = '보라 구름 — EMA 34~40')
+plotshape(longCondition and sweep_up, '스윕 롱', shape.labelup, location.belowbar, color.new(color.green, 0), text = '🐳', textcolor = color.white, size = size.tiny)
+plotshape(longCondition and spike_up, '스파이크 롱', shape.labelup, location.belowbar, color.new(color.lime, 0), text = '⚡', textcolor = color.black, size = size.tiny)
+plotshape(longCondition and rev_long, '리버설 롱', shape.labelup, location.belowbar, color.new(color.aqua, 0), text = 'R', textcolor = color.black, size = size.tiny)
+plotshape(longCondition and not sweep_up and not spike_up and not rev_long, 'ASGMA 롱', shape.labelup, location.belowbar, color.new(color.green, 0), text = 'B', textcolor = color.white, size = size.tiny)
+plotshape(shortCondition and sweep_dn, '스윕 숏', shape.labeldown, location.abovebar, color.new(color.red, 0), text = '🐳', textcolor = color.white, size = size.tiny)
+plotshape(shortCondition and spike_dn, '스파이크 숏', shape.labeldown, location.abovebar, color.new(color.maroon, 0), text = '⚡', textcolor = color.white, size = size.tiny)
+plotshape(esc_short, '긴급탈출(숏)', shape.xcross, location.belowbar, color.new(color.gray, 0), size = size.tiny)
+plotshape(esc_long, '긴급탈출(롱)', shape.xcross, location.abovebar, color.new(color.gray, 0), size = size.tiny)
+plotshape(shortCondition and rev_short, '리버설 숏', shape.labeldown, location.abovebar, color.new(color.orange, 0), text = 'R', textcolor = color.black, size = size.tiny)
+plotshape(shortCondition and not sweep_dn and not spike_dn and not rev_short, 'ASGMA 숏', shape.labeldown, location.abovebar, color.new(color.red, 0), text = 'S', textcolor = color.white, size = size.tiny)
+
+// 상태 패널
+var table tb = table.new(position.top_right, 2, 5, bgcolor = color.new(color.black, 70), border_width = 1)
+if barstate.islast
+    table.cell(tb, 0, 0, '항목', text_color = color.gray, text_size = size.small)
+    table.cell(tb, 1, 0, '상태', text_color = color.gray, text_size = size.small)
+    table.cell(tb, 0, 1, '점수 롱/숏', text_color = color.white, text_size = size.small)
+    table.cell(tb, 1, 1, str.tostring(score_l, '#') + ' / ' + str.tostring(score_s, '#') + ' (기준 ' + str.tostring(thresh, '#') + ')', text_color = score_l >= thresh ? color.lime : score_s >= thresh ? color.red : color.gray, text_size = size.small)
+    table.cell(tb, 0, 2, '촙 CI', text_color = color.white, text_size = size.small)
+    table.cell(tb, 1, 2, str.tostring(ci, '#.#'), text_color = ci < 55 ? color.lime : color.gray, text_size = size.small)
+    table.cell(tb, 0, 3, '거래량 Z / 델타', text_color = color.white, text_size = size.small)
+    table.cell(tb, 1, 3, str.tostring(vol_z, '#.#') + (delta > 0 ? ' / 매수' : delta < 0 ? ' / 매도' : ' / -'), text_color = delta > 0 ? color.lime : delta < 0 ? color.red : color.gray, text_size = size.small)
+    table.cell(tb, 0, 4, '포지션', text_color = color.white, text_size = size.small)
+    table.cell(tb, 1, 4, inLong ? '롱 보유' : inShort ? '숏 보유' : not pause_ok ? '휴식(브레이커)' : not gap_ok ? '대기(터널수축)' : '-', text_color = inLong ? color.lime : inShort ? color.red : not pause_ok or not gap_ok ? color.yellow : color.gray, text_size = size.small)

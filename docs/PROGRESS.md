@@ -27,3 +27,16 @@
 - TradingV에 전체 소스 25개 파일 반영 완료(99f406a5509ccfe29b37502caf71cfe9c2e89ece).
 - 2026-10-22 재시도에서도 Vercel `POST /v11/projects`는 `403 forbidden: You don't have permission to create the project` 반환. HAck의 다른 프로젝트를 재사용하거나 덮어쓰지 않음. CLI도 앞선 시도에서 로그인 정보 없음 확인.
 - 사용자가 Vercel 임포트를 완료하면 실제 생성된 프로젝트 ID와 URL을 기준으로 최신 TradingV main 배포를 이어갈 것. 추측한 URL을 운영 주소로 보고하지 말 것.
+
+## 2026-10-23 KST: 지표 구성요소 추가와 Vercel 조회
+
+- 사용자가 제공한 프로젝트/배포: https://vercel.com/ha-ck/tradings/8w3PTwaD6ikKZYs8YUwgXt3o5urD
+- 이 연결의 `get_project(tradings)` 및 배포 조회가 팀 ID와 명시 slug ha-ck 양쪽 모두 404를 반환. 이는 관리 API 응답이며 앱 자체의 HTTP404와 구분해야 한다. 프로젝트 미존재·비밀번호 누락으로 단정하지 않는다.
+- 연결된 계정 인증·HAck 팀 조회는 성공. 현재 플러그인 목록에는 새 tradings가 노출되지 않는다. 로컬 CLI용 VERCEL_TOKEN/OIDC 토큰/프로젝트 링크는 없음(값 출력 없이 존재 여부만 확인).
+- 앱 src/api에는 필수 환경변수·API 키·패스워드 참조가 없다. 공개 시세 방식이므로 Vercel 관리 토큰을 앱에 추가하는 방식으로 해결하지 않는다.
+- 원본 APEX_FINAL_v1.7_FourRangeCloud.pine 478행을 보관하고 다운로드 제공. Pine 자체 실행과 브라우저 계산 이식을 구분한다.
+- ASGMA(원본 트리거 A), WhaleFlow 스윕(원본 트리거 B), ATR 스파이크 구성요소 계산과 확정봉 후보 마커·개별 표시 토글, 각각 상/하방 후보 알람 6종 추가.
+- 최종 전략의 HTF 레짐·점수 게이트·쿨다운·포지션·분할청산은 미이식. 후보 마커를 원본 전략 주문 신호로 표시하지 않는다.
+- 18개 테스트 통과. 추가 검증: Pine 평활 초기값, 편향 표준편차, 평탄 시장 무신호, 거래량·꼬리 동반 스윕, 미확정봉 알람 차단, 중복 방지, 미래 봉 추가 시 과거 계산 불변. Vite 빌드 성공(번들 약266KB/압축87KB).
+- 과거 대화에서 ASGMA v19.2와 ATH_Ultimate_Functional_Replica_v1.pine 이름도 확인. 별도 ATH 파일은 공개 계산식 기반 재현판이라는 기록이며 비공개 원본 수식과 같다는 근거 없음. 현재 별도 원본 코드는 확보하지 못했으므로 새 수식을 임의로 그 이름으로 등록하지 않는다.
+- Vercel 프로젝트 설정·빌드 로그·Production 환경변수 확인은 해당 프로젝트 접근이 해결된 뒤 이어갈 것. 플러그인 반복 실패 후 브라우저로 전환하려면 사용자 승인이 필요하다.
