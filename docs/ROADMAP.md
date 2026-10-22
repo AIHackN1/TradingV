@@ -3,14 +3,27 @@
 기준 저장소: https://github.com/AIHackN1/TradingV
 예전 Aihackerton은 이전 원본이며 이후 수정 대상이 아니다.
 
+## 2026-10-23 최우선 방향 수정
+
+사용자는 자체 차트와 TradingView로 나뉜 두 탭을 원하는 최종 형태로 인정하지 않았다. 목표는 ATH처럼 **동일 TradingView 차트에서 왼쪽 그리기, 사용자 APEX 지표, 알람을 함께 사용하는 것**이다. 아래 기존 완료 항목들은 구성요소 구현 이력이며 이 통합이 완료됐다는 뜻이 아니다.
+
+- [x] ATH 실제 브라우저 페이지 확인. DOM의 스크립트 경로 `/charting_library/charting_library.standalone.js?v=32.2.0-1` 및 실제 캔들/왼쪽 기본 그리기 도구/ATH indicators 메뉴를 확인.
+- [x] SOXL 운영 API 실제 응답 확인: 1,000 일봉, 마지막 종가 약84.9, 최근140봉 고가 최대302. 3200축을 시세 자체로 정당화할 수 없음.
+- [x] 종목/시간봉 전환의 최초 로드에서 X축뿐 아니라 가격축 autoscale/일반모드/방향을 초기화. 초기화 버튼도 두 축을 복구하도록 수정.
+- [ ] ATH 방식의 정식 Advanced Charts 라이브러리 확보 및 사용자 사용권 확인. 현재 저장소에는 해당 배포 파일이 없음. 공개 widget 또는 lightweight-charts 패키지로 대체했다고 완료 표시하지 말 것.
+- [ ] 확보된 공식 라이브러리의 datafeed에 허용된 OHLCV 공급자 연결, 동일 데이터로 APEX JavaScript custom_indicators_getter 이식, 그림 저장/복원, 알람 및 모바일 검증. Pine를 iframe에 주입할 수 있다고 설명하지 말 것.
+- [ ] 아래 분리 탭 구현을 단일 차트로 교체하는 작업이 실제로 완료되기 전까지 미완료 유지.
+
+공식 근거: https://www.tradingview.com/widget-docs/faq/general/ 와 https://www.tradingview.com/charting-library-docs/latest/custom_studies/ . Advanced Charts도 Pine 자체 실행은 지원하지 않고 JavaScript 사용자 지표를 지원한다. ATH의 공개 스크립트 경로 확인과 전체 원본 확보는 다르다. 서버 요청은 Cloudflare403 HTML을 반환하여 main bundle 내용은 분석하지 못했다. ATH 라이브러리를 다른 사이트에서 재사용할 사용권이 확인된 것이 아니다.
+
 ## 사용자 요청과 완료 기준
 
 - [x] 앱 전체 소스, 빌드 설정, API, 라이선스, 테스트를 TradingV에 보존.
 - [x] SOXL을 TradingView 공식 차트로 표시. 공식 왼쪽 도구 모음 활성화.
 - [x] 자체 차트에도 추세선/레이/수평선/수직선/사각형/피보나치/브러시/텍스트/측정/지우개 제공.
 - [x] 자체 그림 선택, 드래그 이동, 기준점 편집, 삭제, undo/redo, 종목·시간봉별 저장, 백업.
-- [ ] 연결된 Vercel 프로젝트와 실제 배포 URL 확인. 프로젝트 생성 권한이 막히면 필요한 사용자 조치를 한 단계로 보고.
-- [ ] 자체 SOXL 분석에 쓸 OHLCV의 운영 환경 접근과 사용 범위 검증. Yahoo 공개 차트 어댑터가 있으나 조사 환경에서는 레이트리밋. 실제 시세 수신 성공으로 간주하지 말 것.
+- [x] 기존 Vercel 프로젝트 ha-ck/tradings의 GitHub 자동배포 성공 및 실제 운영 주소 https://tradings-black.vercel.app 확인. 새 프로젝트 생성 금지.
+- [x] 운영 환경 SOXL OHLCV API 실제 응답 수신 확인. Yahoo 공개 응답 사용 범위와 공급자 지속성/지연 한계는 별도 검토.
 - [ ] 모바일 터치 그리기/도형 이동 검증. CSS 반응형 구현과 실제 터치 검증은 구분할 것.
 - [ ] APEX v1.7의 현재 차트 구름대 외 로직 이식 범위를 사용자 의도와 원본으로 대조하고 단계적으로 구현. 원본의 현물/선물·상위 시간봉·확정봉 처리부터 정합성 확인.
 - [ ] 서버에 저장되는 24시간 알람이 필요하면 영속 저장·스케줄러·중복 방지·전달을 설계하고 실행 증거로 검증. 구현 전에는 창 닫아도 감시된다고 표시하지 말 것.

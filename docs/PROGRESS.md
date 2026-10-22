@@ -40,3 +40,13 @@
 - 18개 테스트 통과. 추가 검증: Pine 평활 초기값, 편향 표준편차, 평탄 시장 무신호, 거래량·꼬리 동반 스윕, 미확정봉 알람 차단, 중복 방지, 미래 봉 추가 시 과거 계산 불변. Vite 빌드 성공(번들 약266KB/압축87KB).
 - 과거 대화에서 ASGMA v19.2와 ATH_Ultimate_Functional_Replica_v1.pine 이름도 확인. 별도 ATH 파일은 공개 계산식 기반 재현판이라는 기록이며 비공개 원본 수식과 같다는 근거 없음. 현재 별도 원본 코드는 확보하지 못했으므로 새 수식을 임의로 그 이름으로 등록하지 않는다.
 - Vercel 프로젝트 설정·빌드 로그·Production 환경변수 확인은 해당 프로젝트 접근이 해결된 뒤 이어갈 것. 플러그인 반복 실패 후 브라우저로 전환하려면 사용자 승인이 필요하다.
+
+
+## 2026-10-23 KST: ATH 실물 조사 및 가격축 복구
+
+- 사용자 스크린샷의 운영 주소 tradings-black.vercel.app 확인. 공개 `/api/market?symbol=SOXL&interval=1d&kind=klines` 실제 수신: 1,000봉, 마지막 종가84.90, 최근140봉 최고302. 데이터 고가가3200이라는 증거 없음.
+- 기존 setCandles(initial)와 fitBtn은 시간축만 변경하여 수동 가격축 상태를 복구하지 않았음. initial 로드 및 초기화 버튼에서 오른쪽 가격축 autoScale=true, mode=0, invertScale=false를 복원하고 최근140봉을 표시하도록 수정. 실시간 갱신 때는 사용자가 탐색 중인 뷰를 강제로 초기화하지 않음.
+- ATH를 실제 브라우저로 열어 캔들과 왼쪽 도구, 관심종목, ATH indicators 메뉴 확인. DOM의 standalone Charting Library 경로에 v32.2.0-1 표시 확인. 공개 main JS를 서버로 받으려 했으나 Cloudflare403 HTML이었고 실제 코드 전체를 받았다고 주장할 수 없음.
+- 공식 문서 확인: 위젯 사용자 Pine 삽입 불가, Advanced Charts는 JavaScript custom_indicators_getter 지원, Pine 직접 실행 미지원. 현재 레포에는 Advanced Charts 배포 파일/사용권 증거 없음. ATH 파일을 복사해 재배포할 권한이 있다고 간주하지 않음.
+- 기존 4시간 예약의 일정·활성 상태를 유지하고 단일 차트 통합 목표, 가격축 회귀검증, 실제주소/배포대상, 라이브러리 확보 차단조건으로 prompt 수정 완료.
+- 계산/알람/그리기/stock adapter 테스트18개 통과, Vite build 성공. 단일 TradingView 통합은 미완료이며 다음 실행에서 기존 두 보기 구현을 완료 형태로 되풀이하지 말 것.
