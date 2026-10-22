@@ -76,3 +76,5 @@
 - 브라우저 실화면 검증을 시도했으나 `cua.createBrowserTab` 호출이 tools/call timeout으로 실패. 사이트 자체 오류나 봇 차단이라는 증거는 없음. 이번 수정의 브라우저 검증/모바일 터치 검증 완료로 표시하지 않음.
 - Vercel get_project(tradings,ha-ck)는 현재도 관리 API404. 프로젝트를 새로 만들거나 토큰/비밀번호를 앱에 넣지 않음. GitHub 기존 자동배포 상태와 실제 운영 HTTP로 확인할 것.
 - 미완료: 이번 수정 실화면 재검증, 정식AdvancedCharts 접근 및 ATH원본 수식, 모바일 터치, 전체APEX 정합성, 서버24시간알람/푸시. 이번 코드 수정을 완전통합 완료로 간주하지 말 것.
+
+- 배포 결과: 코드 커밋78619473c13f67ce1d03aea89f402fcf7d9cd15c의 GitHub Vercel status `success`, https://vercel.com/ha-ck/tradings/GrzZBrqzUu4p1ETFVcMqcAC2SayQ . 실제 https://tradings-black.vercel.app/ HTTP200 및 새 번들 `/assets/index-Cwq2OX8s.js` 반영 확인. SOXL API HTTP200, Yahoo Finance 정규장 일봉1000개 응답 확인. 이는 HTTP/배포 검증이며 브라우저 UI 동작 검증이 아니다.
