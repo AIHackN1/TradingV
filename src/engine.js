@@ -1,3 +1,6 @@
+import {MARKETS} from './markets.js';
+export {MARKETS} from './markets.js';
+import {studyCondition} from './studies.js';
 import {ema,rsi} from './technical.js';
 import {calculateApex} from './apex.js';
 export {ema,sma,rsi} from './technical.js';
@@ -9,25 +12,15 @@ export const DEFAULT_CLOUDS = [
   {name:'보라',fast:34,slow:40,color:'#ab83ff'},
 ];
 export const INTERVALS = {'1m':60,'5m':300,'15m':900,'1h':3600,'4h':14400,'1d':86400};
-export const MARKETS = [
-  {symbol:'SOXL',name:'Semiconductor Bull 3X',code:'SOXL',color:'#80b2ff',type:'stock',currency:'USD',tvSymbol:'AMEX:SOXL'},
-  {symbol:'BTCUSDT',name:'Bitcoin',code:'BTC',color:'#f6ae42'},
-  {symbol:'ETHUSDT',name:'Ethereum',code:'ETH',color:'#9f9fff'},
-  {symbol:'SOLUSDT',name:'Solana',code:'SOL',color:'#70dbbb'},
-  {symbol:'XRPUSDT',name:'XRP',code:'XRP',color:'#cad1de'},
-  {symbol:'BNBUSDT',name:'BNB',code:'BNB',color:'#eac664'},
-  {symbol:'DOGEUSDT',name:'Dogecoin',code:'DOGE',color:'#cfb66f'},
-  {symbol:'AVAXUSDT',name:'Avalanche',code:'AVAX',color:'#ee7781'},
-  {symbol:'LINKUSDT',name:'Chainlink',code:'LINK',color:'#81aaff'},
-];
 export function normalizeKlines(rows){
   if(!Array.isArray(rows))throw new Error('잘못된 시세 응답입니다.');
   const sorted=rows.map(r=>({time:Number(r[0])/1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]),closeTime:Number(r[6])})).sort((a,b)=>a.time-b.time);
-  if(sorted.some(c=>!Object.values(c).every(Number.isFinite)||c.high<Math.max(c.open,c.close)||c.low>Math.min(c.open,c.close)||c.time<=0))throw new Error('유효하지 않은 캔들이 포함되어 있습니다.');
+  if(sorted.some(c=>!Object.values(c).every(Number.isFinite)||c.high<Math.max(c.open,c.close)||c.low>Math.min(c.open,c.close)||c.time<=0||c.volume<0))throw new Error('유효하지 않은 캔들이 포함되어 있습니다.');
   return sorted.filter((c,i)=>i===0||c.time!==sorted[i-1].time);
 }
 export function confirmedCandles(candles,now=Date.now()){return candles.filter(c=>c.closeTime<now);}
 export function conditionMatches(rule,candles){
+  if(/^(bb|dc|supertrend|vwap)-/.test(rule.kind))return studyCondition(rule,candles);
   const apexKeys={'asgma-up':'asgmaUp','asgma-down':'asgmaDown','sweep-up':'sweepUp','sweep-down':'sweepDown','spike-up':'spikeUp','spike-down':'spikeDown'};
   if(apexKeys[rule.kind])return !!calculateApex(candles).at(-1)?.[apexKeys[rule.kind]];
   if(candles.length<2)return false;
@@ -49,7 +42,11 @@ export function conditionMatches(rule,candles){
 // Once monitoring, every newly closed candle is evaluated, including reconnect gaps.
 export function evaluateRule(rule,candles,now=Date.now()){
   const closed=confirmedCandles(candles,now);if(!closed.length)return {rule,events:[]};
-  if(rule.lastEvaluated==null)return {rule:{...rule,lastEvaluated:closed.at(-1).time},events:[]};
+  if(rule.lastEvaluated==null){
+    if(!Number.isFinite(rule.armedAt))return {rule:{...rule,lastEvaluated:closed.at(-1).time},events:[]};
+    const baseline=closed.filter(c=>c.closeTime<rule.armedAt).at(-1);
+    rule={...rule,lastEvaluated:baseline?.time??0};
+  }
   const events=[];let next={...rule};
   for(let i=0;i<closed.length;i++){
     const c=closed[i];if(c.time<=next.lastEvaluated)continue;
@@ -69,11 +66,12 @@ export function validateIndicator(config){
     return {name:String(c.name||'EMA').slice(0,30),fast:c.fast,slow:c.slow,color:c.color};
   })};
 }
-export function validateRule(r){
-  if(r.symbol==='SOXL'&&r.interval!=='1d')throw new Error('자체 SOXL 알람은 정규장 일봉만 지원합니다.');
-  if(!MARKETS.some(m=>m.symbol===r.symbol)||!INTERVALS[r.interval])throw new Error('지원하지 않는 종목 또는 시간봉입니다.');
-  if(!['price-above','price-below','ema-up','ema-down','rsi-above','rsi-below','asgma-up','asgma-down','sweep-up','sweep-down','spike-up','spike-down'].includes(r.kind))throw new Error('지원하지 않는 알람 조건입니다.');
-  if(/^(asgma|sweep|spike)-/.test(r.kind))return r;
+export function validateRule(r,markets=MARKETS){
+  if(markets.find(m=>m.symbol===r.symbol)?.type==='stock'&&r.interval!=='1d')throw new Error('자체 미국 주식 알람은 정규장 일봉만 지원합니다.');
+  if(!markets.some(m=>m.symbol===r.symbol)||!INTERVALS[r.interval])throw new Error('지원하지 않는 종목 또는 시간봉입니다.');
+  if(!['price-above','price-below','ema-up','ema-down','rsi-above','rsi-below','asgma-up','asgma-down','sweep-up','sweep-down','spike-up','spike-down','bb-up','bb-down','dc-up','dc-down','supertrend-up','supertrend-down','vwap-up','vwap-down'].includes(r.kind))throw new Error('지원하지 않는 알람 조건입니다.');
+  if(r.kind.startsWith('vwap-')&&(r.interval==='1d'||markets.find(m=>m.symbol===r.symbol)?.type==='stock'))throw new Error('세션 VWAP 알람은 암호화폐 분봉에서 사용하세요.');
+  if(/^(asgma|sweep|spike|bb|dc|supertrend|vwap)-/.test(r.kind))return r;
   if(r.kind.startsWith('ema')){
     if(!Number.isInteger(r.fast)||!Number.isInteger(r.slow)||Math.min(r.fast,r.slow)<1||Math.max(r.fast,r.slow)>400||r.fast===r.slow)throw new Error('서로 다른 EMA 기간(1~400)을 입력하세요.');
   }else if(!Number.isFinite(r.threshold)||r.threshold<=0||(r.kind.startsWith('rsi')&&r.threshold>=100))throw new Error('유효한 기준값을 입력하세요. RSI는 0~100 사이입니다.');
