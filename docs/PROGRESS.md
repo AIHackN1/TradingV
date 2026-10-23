@@ -78,3 +78,13 @@
 - 미완료: 이번 수정 실화면 재검증, 정식AdvancedCharts 접근 및 ATH원본 수식, 모바일 터치, 전체APEX 정합성, 서버24시간알람/푸시. 이번 코드 수정을 완전통합 완료로 간주하지 말 것.
 
 - 배포 결과: 코드 커밋78619473c13f67ce1d03aea89f402fcf7d9cd15c의 GitHub Vercel status `success`, https://vercel.com/ha-ck/tradings/GrzZBrqzUu4p1ETFVcMqcAC2SayQ . 실제 https://tradings-black.vercel.app/ HTTP200 및 새 번들 `/assets/index-Cwq2OX8s.js` 반영 확인. SOXL API HTTP200, Yahoo Finance 정규장 일봉1000개 응답 확인. 이는 HTTP/배포 검증이며 브라우저 UI 동작 검증이 아니다.
+
+## 2026-10-23 선물 3종·APEX 점수필터·반복 알람
+
+- 사용자 최신 요청: SOXL/BTC/ETH 선물 차트 및 실제 지표 시그널마다 알람. Binance 공식 SOXLUSDT 상장 공지와 TradingView BINANCE:SOXLUSDT.P 실제 차트 확인. SOXL 주식·암호화폐 현물과 별도 ID로 저장한다.
+- `src/apex-signals.js`에 보관된 원본 Pine의 직전 확정1h/4h EMA155/162 레짐, 방향/거래량Z/델타/CI 점수, 점수/CI/터널/반대 스파이크 필터를 부분 이식했다. 1m~1h 지원, 독립 HTF 히스토리162봉 이상 필요. 미래·미확정 HTF를 참조하지 않는다. 대기 봉수는 표시 시그널 기준이며 원본의 주문 체결·포지션·청산·손절 후 차단·브레이커와 동등하지 않다.
+- 점수필터 마커와 알람의 계산 함수를 공유. ‘이 시그널마다 알람’과 ‘선택 후보마다 알람’ 버튼으로 등록 당시 설정을 복사한 반복 알람을 만든다. 방향·이유·점수 기록, 봉별 중복방지, 일회 알람 선택 유지, 백업/복원 연결. 화면의 표시를 끄는 것과 알람 중지를 구분한다.
+- 선물은 fixed fapi.binance.com REST와 공식 새 /market/ws 시장 스트림을 사용한다. 확인 환경에서 Binance 선물 API가 지역 제한을 반환했다. 제한을 우회하거나 현물로 대체하지 않는다. Bybit 공개 API 대안도 SiteUnavailable이어서 통합하지 않았다. 운영 API 확인은 배포 이후 별도 기록.
+- 로컬 브라우저: BTC 현물15m의 실제 시세/독립HTF 준비 후 확정봉 점수 롱42.2/숏57.2/CI49.9 표시, 점수필터 반복 규칙1건 등록·감시 중 표시 확인. 미래 시그널의 실제 발생/OS알림 전달은 이번 테스트에서 관찰하지 못했다. SOXL 선물 공식 위젯 캔들 및 왼쪽 기본 도구 확인. 위젯과 자체APEX 단일 엔진 통합은 여전히 미완료다.
+- 회귀 테스트52개 및 프로덕션 빌드 통과. HTF 미래값/준비기간, 차트 마커와 알람 발생봉 일치, 반복/일회/미확정/중복, spot/perpetual 독립 감시, 선물REST 경로와 지역제한 무대체를 검증했다.
+- 사용 매뉴얼에 선물·점수필터·반복알람·설정 사본·알림 제한을 추가. 24시간 서버 감시·영속저장·백그라운드푸시와 원본 전체 전략/TradingView 수치 동등성은 미완료다.

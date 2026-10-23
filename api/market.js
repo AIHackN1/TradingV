@@ -4,7 +4,16 @@ const crypto=/^[A-Z0-9]{2,20}USDT$/,stock=/^[A-Z][A-Z0-9.-]{0,14}$/;
 export default async function handler(req,res){
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
  const {kind='klines',symbol='BTCUSDT',interval='15m',asset}=req.query;
+ const isFuture=asset==='perpetual';
  const isStock=asset==='stock'||symbol==='SOXL';
+ if(isFuture){
+  if(!['BTCUSDT','ETHUSDT','SOXLUSDT'].includes(symbol)||!['klines','ticker','check'].includes(kind)||!['1m','5m','15m','1h','4h','1d'].includes(interval))return res.status(400).json({error:'지원하는 선물은 BTC·ETH·SOXL USDT 무기한 3종입니다.'});
+  try{const path=kind==='klines'?'klines':'ticker/24hr',params=kind==='klines'?new URLSearchParams({symbol,interval,limit:'1000'}):new URLSearchParams({symbol});
+   const upstream=await fetch(`https://fapi.binance.com/fapi/v1/${path}?${params}`,{signal:AbortSignal.timeout(9000)});
+   if(upstream.status===451||upstream.status===403)return res.status(451).json({error:'이 시세 요청 환경에서 Binance 선물 API 접근이 제한됩니다. 현물로 대체하지 않습니다. 공식 TradingView 보기로 선물 차트를 확인하세요.',code:'FUTURES_ACCESS_RESTRICTED'});
+   if(!upstream.ok)throw new Error('provider error');const data=await upstream.json();if(kind==='klines'&&!Array.isArray(data)||kind!=='klines'&&data.symbol!==symbol)throw new Error('invalid futures response');res.setHeader('Cache-Control','public, s-maxage=3, stale-while-revalidate=3');return res.status(200).json({provider:'Binance USDⓈ-M Futures',fetchedAt:Date.now(),data:kind==='klines'?data:[data]});
+  }catch{return res.status(502).json({error:'선물 시세 제공자에 연결하지 못했습니다. 공식 TradingView 보기에서 선물 차트를 확인하세요.'});}
+ }
  if(typeof symbol!=='string'||!['klines','ticker','check'].includes(kind)||!(isStock?stock:crypto).test(symbol)||!['1m','5m','15m','1h','4h','1d'].includes(interval))return res.status(400).json({error:'Invalid market query'});
  if(isStock){
   if(interval!=='1d')return res.status(400).json({error:'자체 미국 주식 분석·알람은 정규장 일봉만 지원합니다.'});

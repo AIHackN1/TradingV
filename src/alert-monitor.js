@@ -8,12 +8,13 @@ export async function runMonitorPass({getRules,fetchCandles,isSuspended=()=>fals
   for(const r of active){const key=`${r.symbol}:${r.interval}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);}
   let evaluated=0,events=0;
   const results=await Promise.allSettled([...groups.values()].map(async originals=>{
-    const {symbol,interval}=originals[0];const data=await fetchCandles(symbol,interval);
+    const {symbol,interval}=originals[0];const payload=await fetchCandles(symbol,interval,originals);
+    const data=Array.isArray(payload)?payload:payload?.candles,context=Array.isArray(payload)?undefined:payload?.context;
     if(!Array.isArray(data)||!data.length)throw new Error('No market candles');
     for(const original of originals){
       const current=getRules().find(r=>r.id===original.id);
       if(!current?.enabled||current.symbol!==symbol||current.interval!==interval||isSuspended(current))continue;
-      const result=evaluateRule(current,data,now());
+      const result=evaluateRule(current,data,now(),context);
       applyRule(result.rule);evaluated++;
       for(const event of result.events){onEvent(event);events++;}
     }

@@ -1,3 +1,4 @@
+import {apexSignalDetail,validateSignalSettings,signalSupported} from './apex-signals.js';
 import {MARKETS} from './markets.js';
 export {MARKETS} from './markets.js';
 import {studyCondition} from './studies.js';
@@ -19,7 +20,8 @@ export function normalizeKlines(rows){
   return sorted.filter((c,i)=>i===0||c.time!==sorted[i-1].time);
 }
 export function confirmedCandles(candles,now=Date.now()){return candles.filter(c=>c.closeTime<now);}
-export function conditionMatches(rule,candles){
+export function conditionMatches(rule,candles,context){
+  if(rule.kind==='apex-signal'||rule.kind==='apex-any')return !!apexSignalDetail(rule,candles,context);
   if(/^(bb|dc|supertrend|vwap)-/.test(rule.kind))return studyCondition(rule,candles);
   const apexKeys={'asgma-up':'asgmaUp','asgma-down':'asgmaDown','sweep-up':'sweepUp','sweep-down':'sweepDown','spike-up':'spikeUp','spike-down':'spikeDown'};
   if(apexKeys[rule.kind])return !!calculateApex(candles).at(-1)?.[apexKeys[rule.kind]];
@@ -40,7 +42,7 @@ export function conditionMatches(rule,candles){
 }
 // Fresh/restarted rules establish a baseline; they never replay an old signal.
 // Once monitoring, every newly closed candle is evaluated, including reconnect gaps.
-export function evaluateRule(rule,candles,now=Date.now()){
+export function evaluateRule(rule,candles,now=Date.now(),context){
   const closed=confirmedCandles(candles,now);if(!closed.length)return {rule,events:[]};
   if(rule.lastEvaluated==null){
     if(!Number.isFinite(rule.armedAt))return {rule:{...rule,lastEvaluated:closed.at(-1).time},events:[]};
@@ -50,8 +52,8 @@ export function evaluateRule(rule,candles,now=Date.now()){
   const events=[];let next={...rule};
   for(let i=0;i<closed.length;i++){
     const c=closed[i];if(c.time<=next.lastEvaluated)continue;
-    if(next.enabled&&conditionMatches(next,closed.slice(0,i+1))){
-      events.push({id:`${rule.id}:${c.time}`,ruleId:rule.id,symbol:rule.symbol,interval:rule.interval,kind:rule.kind,title:rule.name,price:c.close,barTime:c.time,detectedAt:now});
+    if(next.enabled&&conditionMatches(next,closed.slice(0,i+1),context)){
+      events.push({id:`${rule.id}:${c.time}`,ruleId:rule.id,symbol:rule.symbol,interval:rule.interval,kind:rule.kind,title:rule.name,...(rule.kind.startsWith('apex-')?{signal:apexSignalDetail(next,closed.slice(0,i+1),context)}:{}),price:c.close,barTime:c.time,detectedAt:now});
       if(rule.once)next.enabled=false;
     }
     next.lastEvaluated=c.time;
@@ -69,7 +71,9 @@ export function validateIndicator(config){
 export function validateRule(r,markets=MARKETS){
   if(markets.find(m=>m.symbol===r.symbol)?.type==='stock'&&r.interval!=='1d')throw new Error('자체 미국 주식 알람은 정규장 일봉만 지원합니다.');
   if(!markets.some(m=>m.symbol===r.symbol)||!INTERVALS[r.interval])throw new Error('지원하지 않는 종목 또는 시간봉입니다.');
-  if(!['price-above','price-below','ema-up','ema-down','rsi-above','rsi-below','asgma-up','asgma-down','sweep-up','sweep-down','spike-up','spike-down','bb-up','bb-down','dc-up','dc-down','supertrend-up','supertrend-down','vwap-up','vwap-down'].includes(r.kind))throw new Error('지원하지 않는 알람 조건입니다.');
+  if(!['apex-signal','apex-any','price-above','price-below','ema-up','ema-down','rsi-above','rsi-below','asgma-up','asgma-down','sweep-up','sweep-down','spike-up','spike-down','bb-up','bb-down','dc-up','dc-down','supertrend-up','supertrend-down','vwap-up','vwap-down'].includes(r.kind))throw new Error('지원하지 않는 알람 조건입니다.');
+  if(r.kind==='apex-signal'){if(!signalSupported(markets.find(m=>m.symbol===r.symbol),r.interval))throw new Error('APEX 점수필터 시그널은 현물/선물의 1분~1시간봉에서 사용하세요.');return {...r,signalSettings:validateSignalSettings(r.signalSettings)};}
+  if(r.kind==='apex-any'){const components=r.components||{asgma:true,sweep:true,spike:true};if(!['asgma','sweep','spike'].some(k=>components[k]===true))throw new Error('감시할 후보 구성요소를 하나 이상 선택하세요.');return {...r,components:Object.fromEntries(['asgma','sweep','spike'].map(k=>[k,components[k]===true]))};}
   if(r.kind.startsWith('vwap-')&&(r.interval==='1d'||markets.find(m=>m.symbol===r.symbol)?.type==='stock'))throw new Error('세션 VWAP 알람은 암호화폐 분봉에서 사용하세요.');
   if(/^(asgma|sweep|spike|bb|dc|supertrend|vwap)-/.test(r.kind))return r;
   if(r.kind.startsWith('ema')){
