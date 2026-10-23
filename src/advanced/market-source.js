@@ -1,3 +1,4 @@
+import {FILTERED_INTERVALS} from '../timeframes.js';
 import {normalizeKlines} from '../engine.js';
 
 // Production public API source. Current endpoint supplies the latest 1,000
@@ -18,7 +19,7 @@ export function createMarketSource({fetchImpl=fetch,pollMs=15000,setTimer=setInt
     return {candles:normalized,observedAt};
   }
   async function snapshot(market,interval,signal){
-    const needed=market.type!=='stock'&&['1m','5m','15m','1h'].includes(interval);
+    const needed=market.type!=='stock'&&FILTERED_INTERVALS.includes(interval);
     const [main,h1,h4]=await Promise.all([
       load(market,interval,signal),needed&&interval!=='1h'?load(market,'1h',signal):null,needed?load(market,'4h',signal):null,
     ]);

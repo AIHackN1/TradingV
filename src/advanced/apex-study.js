@@ -1,3 +1,4 @@
+import {NATIVE_INTERVALS,FILTERED_INTERVALS} from '../timeframes.js';
 // Our adapter for the licensed Advanced Charts API. Contains no vendor code.
 // Not loaded by the free TradingView iframe. Native rendering awaits licensed QA.
 import {ema} from '../technical.js';
@@ -28,7 +29,7 @@ export function calculateNativeApex(snapshot,settings){
   const {candles,h1=[],h4=[],observedAt,resolution}=snapshot;
   const source=settings.cloudTimeframe==='현재 차트'?candles:settings.cloudTimeframe==='레짐 TF1 (1h)'?h1:h4;
   const curves=settings.lengths.map(length=>ema(source.map(c=>c.close),length));
-  const signals=['1','5','15','60'].includes(resolution)?calculateApexSignals(candles,{h1,h4,hour:Math.floor(observedAt/3600000)},settings.signalSettings):[];
+  const signals=FILTERED_INTERVALS.includes(NATIVE_INTERVALS[resolution])?calculateApexSignals(candles,{h1,h4,hour:Math.floor(observedAt/3600000)},settings.signalSettings):[];
   let prior=-1;
   return new Map(candles.map((c,i)=>{
     if(source!==candles)while(prior+1<source.length&&source[prior+1].closeTime<c.time*1000)prior++;

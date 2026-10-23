@@ -1,7 +1,8 @@
+import {NATIVE_INTERVALS} from '../timeframes.js';
 import {createApexStudy,parseApexInputs} from './apex-study.js';
 import {evaluateRule} from '../engine.js';
 
-const resolutions=new Set(['1','5','15','60','240','1D']);
+const resolutions=new Set(Object.keys(NATIVE_INTERVALS));
 const key=(symbol,resolution)=>JSON.stringify([symbol,resolution]);
 function copyCandles(rows){
   if(!Array.isArray(rows))throw new Error('캔들 배열이 필요합니다.');
@@ -29,7 +30,7 @@ export function createApexSession(){
     clear:(symbol,resolution)=>snapshots.delete(key(symbol,resolution)),
     customIndicatorsGetter(PineJS){return Promise.resolve([createApexStudy(PineJS,(symbol,resolution)=>snapshots.get(key(symbol,resolution)))]);},
     evaluateAlarm(rule,{symbol,resolution}){
-      const intervals={'1':'1m','5':'5m','15':'15m','60':'1h','240':'4h','1D':'1d'};
+      const intervals=NATIVE_INTERVALS;
       if(rule.interval!==intervals[resolution]||rule.nativeSymbol!==symbol||rule.kind!=='apex-signal')throw new Error('알람의 종목·시간봉·지표가 차트와 다릅니다.');
       const snapshot=snapshots.get(key(symbol,resolution));
       if(!snapshot)return {rule,events:[]};

@@ -1,12 +1,13 @@
 import {calculateApex} from './apex.js';
 import {ema} from './technical.js';
+import {FILTERED_INTERVALS} from './timeframes.js';
 export const DEFAULT_SIGNAL_SETTINGS=Object.freeze({minScore:60,chopMax:49,gapAtr:1,cooldown:8});
 export function validateSignalSettings(input={}){
  const s={...DEFAULT_SIGNAL_SETTINGS,...input};
  if(!Number.isFinite(s.minScore)||s.minScore<0||s.minScore>100||!Number.isFinite(s.chopMax)||s.chopMax<0||s.chopMax>100||!Number.isFinite(s.gapAtr)||s.gapAtr<0||s.gapAtr>10||!Number.isInteger(s.cooldown)||s.cooldown<0||s.cooldown>200)throw new Error('시그널 설정 범위를 확인하세요. 점수/CI 0~100, 터널 ATR 0~10, 대기 0~200봉.');
  return {minScore:s.minScore,chopMax:s.chopMax,gapAtr:s.gapAtr,cooldown:s.cooldown};
 }
-export function signalSupported(market,interval){return !!market&&market.type!=='stock'&&['1m','5m','15m','1h'].includes(interval);}
+export function signalSupported(market,interval){return !!market&&market.type!=='stock'&&FILTERED_INTERVALS.includes(interval);}
 function regime(data=[]){const f=ema(data.map(c=>c.close),155),s=ema(data.map(c=>c.close),162);return data.map((c,i)=>({...c,fast:f[i],slow:s[i],ready:i>=161}));}
 function priorClosed(rows,time){let lo=0,hi=rows.length;while(lo<hi){const mid=(lo+hi)>>1;if(rows[mid].closeTime<time*1000)lo=mid+1;else hi=mid;}return rows[lo-1];}
 // APEX's entry-screen subset: original 1h/4h previous confirmed EMA155/162,

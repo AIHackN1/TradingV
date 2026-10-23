@@ -1,6 +1,7 @@
+import {NATIVE_INTERVALS} from '../timeframes.js';
 // Advanced Charts datafeed boundary. The source must be authorized for the
 // exact exchange/product; failures are never replaced by another instrument.
-const intervals={'1':'1m','5':'5m','15':'15m','60':'1h','240':'4h','1D':'1d'};
+const intervals=NATIVE_INTERVALS;
 const later=callback=>setTimeout(callback,0);
 const bar=c=>({time:c.time*1000,open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume});
 function merge(a=[],b=[]){return [...new Map([...a,...b].map(c=>[c.time,c])).values()].sort((a,b)=>a.time-b.time);}

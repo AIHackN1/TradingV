@@ -13,7 +13,8 @@ export const DEFAULT_CLOUDS = [
   {name:'파랑',fast:55,slow:65,color:'#52a5ff'},
   {name:'보라',fast:34,slow:40,color:'#ab83ff'},
 ];
-export const INTERVALS = {'1m':60,'5m':300,'15m':900,'1h':3600,'4h':14400,'1d':86400};
+export {INTERVALS} from './timeframes.js';
+import {INTERVALS} from './timeframes.js';
 export function normalizeKlines(rows){
   if(!Array.isArray(rows))throw new Error('잘못된 시세 응답입니다.');
   const sorted=rows.map(r=>({time:Number(r[0])/1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]),closeTime:Number(r[6])})).sort((a,b)=>a.time-b.time);
