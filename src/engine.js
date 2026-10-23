@@ -5,6 +5,7 @@ export {MARKETS} from './markets.js';
 import {studyCondition} from './studies.js';
 import {ema,rsi} from './technical.js';
 import {calculateApex} from './apex.js';
+import {observeCandles,candleCutoff} from './candle-observation.js';
 export {ema,sma,rsi} from './technical.js';
 // Pure calculations shared by chart overlays and the alert monitor.
 export const DEFAULT_CLOUDS = [
@@ -19,9 +20,9 @@ export function normalizeKlines(rows){
   if(!Array.isArray(rows))throw new Error('잘못된 시세 응답입니다.');
   const sorted=rows.map(r=>({time:Number(r[0])/1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]),closeTime:Number(r[6])})).sort((a,b)=>a.time-b.time);
   if(sorted.some(c=>!Object.values(c).every(Number.isFinite)||c.high<Math.max(c.open,c.close)||c.low>Math.min(c.open,c.close)||c.time<=0||c.volume<0))throw new Error('유효하지 않은 캔들이 포함되어 있습니다.');
-  return sorted.filter((c,i)=>i===0||c.time!==sorted[i-1].time);
+  return observeCandles(sorted.filter((c,i)=>i===0||c.time!==sorted[i-1].time),rows.observedAt??rows.fetchedAt);
 }
-export function confirmedCandles(candles,now=Date.now()){return candles.filter(c=>c.closeTime<now);}
+export function confirmedCandles(candles,now=Date.now()){const cutoff=candleCutoff(candles,now);return candles.filter(c=>c.closeTime<cutoff);}
 export function conditionMatches(rule,candles,context){
   if(rule.kind==='custom-signal')return !!customSignalDetail(rule,candles);
   if(rule.kind==='apex-signal'||rule.kind==='apex-any')return !!apexSignalDetail(rule,candles,context);

@@ -1,3 +1,4 @@
+import {observeCandles,candleCutoff} from './candle-observation.js';
 import {providerInterval,aggregateTenMinuteKlines} from './timeframes.js';
 import {mountIndicatorStudio} from './indicator-studio.js';
 import {validateCustomLibrary,calculateCustomIndicator} from './custom-indicators.js';
@@ -82,11 +83,11 @@ async function getMarket(kind='klines',s=symbol,tf=interval){
   if(stock&&tf!=='1d')throw new Error('자체 미국 주식 분석은 일봉만 지원합니다.');
   const spots=MARKETS.filter(m=>m.type==='crypto').map(m=>m.symbol),params=new URLSearchParams({kind,symbol:pair,interval:tf,asset:stock?'stock':perp?'perpetual':'crypto',...(kind==='ticker'&&!perp&&!stock?{symbols:JSON.stringify(spots)}:{})});let error;
   const urls=[`/api/market?${params}`];if(!stock&&!perp)urls.push(`https://data-api.binance.vision/api/v3/${kind==='klines'?'klines':'ticker/24hr'}?${kind==='check'?new URLSearchParams({symbol:s}):kind==='ticker'?new URLSearchParams({symbols:JSON.stringify(spots)}):new URLSearchParams({symbol:s,interval:providerInterval(tf),limit:'1000'})}`);
-  for(const url of urls){try{const res=await fetch(url,{signal:AbortSignal.timeout(11000)});const body=await res.json();if(!res.ok)throw new Error(body.error||'HTTP '+res.status);const raw=body.data??body;let data=kind==='check'&&!Array.isArray(raw)?[raw]:raw;if(!Array.isArray(data)||!data.length)throw new Error('시세 응답이 비어 있습니다.');if(body.meta)sourceInfo[s]=body.meta;if(stock&&body.quote)ticker[s]=body.quote;
+  for(const url of urls){try{const requestedAt=Date.now();const res=await fetch(url,{signal:AbortSignal.timeout(11000)});const body=await res.json();if(!res.ok)throw new Error(body.error||'HTTP '+res.status);const raw=body.data??body;let data=kind==='check'&&!Array.isArray(raw)?[raw]:raw;if(!Array.isArray(data)||!data.length)throw new Error('시세 응답이 비어 있습니다.');if(body.meta)sourceInfo[s]=body.meta;if(stock&&body.quote)ticker[s]=body.quote;
     if(body.normalized&&kind==='klines')data=data.map(c=>[c.time*1000,c.open,c.high,c.low,c.close,c.volume,c.closeTime]);
     if(kind==='klines'&&tf==='10m'&&url.startsWith('https://'))data=aggregateTenMinuteKlines(data);
     if(perp&&kind!=='klines')data=data.map(t=>({...t,symbol:s}));
-    data.fetchedAt=body.fetchedAt||body.meta?.fetchedAt||Date.now();return data;
+    data.fetchedAt=Math.min(requestedAt,body.fetchedAt||body.meta?.fetchedAt||requestedAt);return data;
   }catch(e){error=e;}}
   throw error;
 }
@@ -133,15 +134,16 @@ function loadNative(){
 }
 async function setView(mode){viewMode=mode;store.set('viewMode',viewMode);if(mode==='analysis'&&market().type==='stock')interval='1d';store.set('interval',interval);updateView();await loadChart();}
 function renderApex(){
+  const cutoff=candleCutoff(candles);
   const diagnostics=calculateApexSignals(candles,chartContext,signalSettings),markers=[];
-  for(const row of diagnostics){if(row.closeTime>=Date.now())continue;
+  for(const row of diagnostics){if(row.closeTime>=cutoff)continue;
     if(signalsVisible&&(row.longSignal||row.shortSignal))markers.push({time:row.time,position:row.longSignal?'belowBar':'aboveBar',color:row.longSignal?'#49d6ad':'#ff8f9f',shape:row.longSignal?'arrowUp':'arrowDown',text:`APEX ${row.longSignal?'LONG':'SHORT'} ${num(row.longSignal?row.scoreLong:row.scoreShort,0)}`});
     if(candidatesVisible)for(const direction of ['Up','Down']){const labels=[];if(componentVisibility.asgma&&row['asgma'+direction])labels.push('A');if(componentVisibility.sweep&&row['sweep'+direction])labels.push('W');if(componentVisibility.spike&&row['spike'+direction])labels.push('⚡');if(labels.length)markers.push({time:row.time,position:direction==='Up'?'belowBar':'aboveBar',color:direction==='Up'?'#89b9a8':'#bd98a4',shape:'circle',text:labels.join(' / ')+' 후보'});}
   }
-  for(const item of customIndicators.filter(x=>x.visible)){for(const row of calculateCustomIndicator(candles,item.recipe)){if(row.closeTime>=Date.now()||!row.signal)continue;const up=row.signal.direction==='LONG';markers.push({time:row.time,position:up?'belowBar':'aboveBar',color:up?'#65d6b5':'#ff9db3',shape:up?'arrowUp':'arrowDown',text:item.recipe.name+' '+row.signal.direction});}}
-  lastChartMarkers=markers.sort((a,b)=>a.time-b.time);markerApi?.setMarkers(lastChartMarkers);const last=diagnostics.filter(r=>r.closeTime<Date.now()).at(-1);
+  for(const item of customIndicators.filter(x=>x.visible)){for(const row of calculateCustomIndicator(candles,item.recipe)){if(row.closeTime>=cutoff||!row.signal)continue;const up=row.signal.direction==='LONG';markers.push({time:row.time,position:up?'belowBar':'aboveBar',color:up?'#65d6b5':'#ff9db3',shape:up?'arrowUp':'arrowDown',text:item.recipe.name+' '+row.signal.direction});}}
+  lastChartMarkers=markers.sort((a,b)=>a.time-b.time);markerApi?.setMarkers(lastChartMarkers);const last=diagnostics.filter(r=>r.closeTime<cutoff).at(-1);
   $('#signalStatus').textContent=!signalSupported(market(),interval)?'점수필터는 현물/선물 1분~1시간봉에서 사용하세요. 주식 일봉·4시간봉은 후보 진단을 사용합니다.':!last?.signalReady?'확정 1시간·4시간 시세/EMA162 준비 전 · 점수필터 신호를 만들지 않습니다.':`확정봉 ${new Date(last.time*1000).toISOString().slice(0,16).replace('T',' ')} UTC · 롱 ${num(last.scoreLong,1)} / 숏 ${num(last.scoreShort,1)}점 · CI ${num(last.ci,1)} · ${sample?'샘플, 감시중지':csvMode?'CSV, 감시중지':'실제 시세 기준'}`;
-  const closedRows=diagnostics.filter(r=>r.closeTime<Date.now()),filtered=closedRows.filter(r=>r.longSignal||r.shortSignal),raw=closedRows.filter(r=>r.asgmaUp||r.asgmaDown||r.sweepUp||r.sweepDown||r.spikeUp||r.spikeDown);
+  const closedRows=diagnostics.filter(r=>r.closeTime<cutoff),filtered=closedRows.filter(r=>r.longSignal||r.shortSignal),raw=closedRows.filter(r=>r.asgmaUp||r.asgmaDown||r.sweepUp||r.sweepDown||r.spikeUp||r.spikeDown);
   $('#chartSignalSummary').textContent=`확정 ${closedRows.length}봉 · 점수필터 ${filtered.length}건${signalsVisible?'':' (표시 꺼짐)'} · 원시 후보 ${raw.length}봉${candidatesVisible?' (표시 켜짐)':' (표시 꺼짐)'}${!filtered.length&&last?.signalReady?' · 현재 조건을 통과한 신호 없음':''}`;
   $('#lastSignalBtn').disabled=!lastChartMarkers.length;
   $('#chartCandidatesBtn').textContent=candidatesVisible?'후보 숨기기':'후보 표시';
@@ -206,15 +208,15 @@ async function loadChart(){
   if(viewMode==='tradingview'){$('#signalStatus').textContent='공식 위젯 보기 · 자체 APEX는 별도 시세가 연결된 내 지표 차트에서 계산합니다.';loadNative();return;}
   $('#tvFrame').removeAttribute('src');setConnection('loading');showMessage('시세를 불러오는 중입니다',m.type==='stock'?`${m.code} 정규장 일봉을 조회합니다. 지연될 수 있습니다.`:'거래소 공개 데이터에 연결하고 있습니다.');
   if(profilePrimitive){series.detachPrimitive(profilePrimitive);profilePrimitive=null;}series.setData([]);volume.setData([]);rsiSeries.setData([]);markerApi?.setMarkers([]);$('#apexMetrics').textContent='시세 연결 후 진단값을 표시합니다.';overlays.forEach(s=>chart.removeSeries(s));overlays=[];if(cloudPrimitive){series.detachPrimitive(cloudPrimitive);cloudPrimitive=null;}candles=[];lastChartMarkers=[];$('#lastSignalBtn').disabled=true;$('#chartSignalSummary').textContent='시세 연결 후 시그널을 계산합니다.';updatePrice();
-  try{const data=normalizeKlines(await getMarket('klines'));if(seq!==loadSeq)return;chartContext=await refreshSignalContext(m.symbol,tf);if(seq!==loadSeq)return;setCandles(data,true);loadedMarket=`${symbol}:${interval}`;lastChartUpdate=Date.now();$('#chartMessage').hidden=true;setConnection(m.type==='stock'?'stock':'poll');if(m.type!=='stock'&&tf!=='10m')connectStream(seq);pollId=setInterval(()=>refreshChart(seq),m.type==='stock'?60000:15000);}catch(e){if(seq!==loadSeq)return;setConnection('error');$('#signalStatus').textContent='시세 연결 실패 · APEX 시그널 계산/알람 대기';$('#chartSignalSummary').textContent='시세 연결 실패 · 시그널 계산 불가';showMessage('시세에 연결하지 못했습니다',e.message||'연결을 다시 시도하거나 샘플을 선택하세요.',true);}
+  try{const data=normalizeKlines(await getMarket('klines'));if(seq!==loadSeq)return;const context=await refreshSignalContext(m.symbol,tf);if(seq!==loadSeq)return;chartContext=context;setCandles(data,true);loadedMarket=`${symbol}:${interval}`;lastChartUpdate=Date.now();$('#chartMessage').hidden=true;setConnection(m.type==='stock'?'stock':'poll');if(m.type!=='stock'&&tf!=='10m')connectStream(seq);pollId=setInterval(()=>refreshChart(seq),m.type==='stock'?60000:15000);}catch(e){if(seq!==loadSeq)return;setConnection('error');$('#signalStatus').textContent='시세 연결 실패 · APEX 시그널 계산/알람 대기';$('#chartSignalSummary').textContent='시세 연결 실패 · 시그널 계산 불가';showMessage('시세에 연결하지 못했습니다',e.message||'연결을 다시 시도하거나 샘플을 선택하세요.',true);}
 }
 async function refreshChart(seq=loadSeq){
-  if(sample||csvMode||viewMode!=='analysis')return;try{const data=normalizeKlines(await getMarket());if(seq!==loadSeq)return;chartContext=await refreshSignalContext(symbol,interval);if(seq!==loadSeq)return;setCandles(data);loadedMarket=`${symbol}:${interval}`;lastChartUpdate=Date.now();$('#chartMessage').hidden=true;if(!socket||socket.readyState!==WebSocket.OPEN)setConnection(market().type==='stock'?'stock':'poll');}catch{if(seq===loadSeq){setConnection('error');toast('시세 갱신 실패 · 마지막 수신 데이터를 표시합니다.');}}
+  if(sample||csvMode||viewMode!=='analysis')return;try{const data=normalizeKlines(await getMarket());if(seq!==loadSeq||Number.isFinite(candles.observedAt)&&data.observedAt<candles.observedAt)return;const context=await refreshSignalContext(symbol,interval);if(seq!==loadSeq||Number.isFinite(candles.observedAt)&&data.observedAt<candles.observedAt)return;chartContext=context;setCandles(data);loadedMarket=`${symbol}:${interval}`;lastChartUpdate=Date.now();$('#chartMessage').hidden=true;if(!socket||socket.readyState!==WebSocket.OPEN)setConnection(market().type==='stock'?'stock':'poll');}catch{if(seq===loadSeq){setConnection('error');toast('시세 갱신 실패 · 마지막 수신 데이터를 표시합니다.');}}
 }
 function connectStream(seq){
   const m=market(),pair=(m.dataSymbol||symbol).toLowerCase();socket=new WebSocket(m.type==='perpetual'?`wss://fstream.binance.com/market/ws/${pair}@kline_${interval}`:`wss://data-stream.binance.vision/ws/${pair}@kline_${interval}`);
   socket.onopen=()=>{if(seq===loadSeq)setConnection('live');};
-  socket.onmessage=e=>{if(seq!==loadSeq||sample)return;try{const k=JSON.parse(e.data).k;if(!k)return;const c={time:k.t/1000,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closeTime:k.T};const last=candles.at(-1);if(!last||c.time<last.time)return;if(c.time===last.time)candles[candles.length-1]=c;else candles.push(c);if(candles.length>1000)candles.shift();series.update(c);volume.update({time:c.time,value:c.volume,color:c.close>=c.open?'#26b89b38':'#e16d8538'});applyOverlays();lastChartUpdate=Date.now();updatePrice();}catch{}};
+  socket.onmessage=e=>{if(seq!==loadSeq||sample)return;try{const message=JSON.parse(e.data),k=message.k;if(!k||!Number.isFinite(message.E))return;if(Number.isFinite(candles.observedAt)&&message.E<candles.observedAt)return;const c={time:k.t/1000,open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,closeTime:k.T};const last=candles.at(-1);if(!last||c.time<last.time)return;if(c.time===last.time)candles[candles.length-1]=c;else candles.push(c);if(candles.length>1000)candles.shift();observeCandles(candles,message.E);series.update(c);volume.update({time:c.time,value:c.volume,color:c.close>=c.open?'#26b89b38':'#e16d8538'});applyOverlays();lastChartUpdate=Date.now();updatePrice();}catch{}};
   socket.onerror=()=>{};socket.onclose=()=>{if(seq===loadSeq&&!sample)setConnection('poll');};
 }
 async function refreshTickers(){await Promise.allSettled(['BTCUSDT',...MARKETS.filter(m=>m.type==='perpetual').map(m=>m.symbol)].map(async s=>{try{const rows=await getMarket('ticker',s,'15m');ticker={...ticker,...Object.fromEntries(rows.map(t=>[t.symbol,t]))};}catch{}}));renderMarkets($('#marketSearch').value);updatePrice();}
