@@ -50,3 +50,13 @@ await chart.ready;
 - https://www.tradingview.com/charting-library-docs/latest/custom_studies/Custom-Studies-Examples/
 - https://www.tradingview.com/charting-library-docs/latest/connecting_data/Datafeed-API/
 - https://www.tradingview.com/charting-library-docs/latest/quick-start/
+
+## 추가: 데이터피드·운영 API 소스 연결
+
+- `src/advanced/datafeed.js`: onReady/searchSymbols/resolveSymbol/getBars/subscribeBars/unsubscribeBars 구현. 콜백은 별도 macrotask에서 호출하고 차트에 캔들 사본을 전달한다. 같은 세션에 먼저 시세를 게시한 뒤 차트로 전달한다. 페이지 이력 보존, 종료/구독ID 재사용 후 응답 차단, 과거봉 수정 시 캐시 초기화 요청을 포함한다.
+- `src/advanced/market-source.js`: 기존 운영 `/api/market`를 사용한다. 현물/선물 상품을 그대로 전달하며 별도 공급자 대체 없음. 분봉1h/4h 독립 이력을 함께 받고 공급자 수신 시각의 최솟값으로 확정 여부를 판단한다. 겹치는 폴링/종료된 요청을 막고 abort한다. 주식은 UTC 자정 일봉시간으로 변환하되 실제 장 종료 closeTime은 보존한다.
+- 현재 API의 암호화폐 최근1000봉/주식 최대1000일봉 범위를 넘는 과거 조회는 명시적 HISTORY_RANGE_UNAVAILABLE 오류다. 거래 시작일/noData를 추측하지 않는다. 임의 기간 페이지네이션은 미구현이다.
+- createApexDatafeed의 markets에는 공급자로 확인한 pricescale/minmov가 필요하다. 기존 기본 시장목록에 없는 값이며 실제 공급자의 exchangeInfo/상품 메타데이터 연동이 남아 있다.
+- `createApexDatafeed({markets,source:createMarketSource(),session})` 결과를 mountApexChart의 datafeed로 전달한다. 호스트 연결 예제의 수동 publish는 이 데이터피드가 수행한다. 네이티브 알람 등록 UI는 여전히 연결 전이다.
+- 실데이터 검증: 운영 API에서 BTC 현물15m/1h/4h 각1000봉을 새 소스로 수신했다. SOXL 운영 일봉은 데이터피드→세션→지표 출력까지 실행하여250봉, UTC 자정 정렬, 종가82.11000061035156 및 유한한8개 구름값 확인. Native context는 테스트 대역이며 실제 Charting Library 렌더러 검증이 아니다. 선물 수신 성공으로 해석하지 않는다.
+- 테스트74개/빌드 통과. 최신 추가9개는 비동기콜백/페이지보존/오류와진짜이력종료구분/구독정리/상품메타데이터/독립HTF/접근제한/일봉시간/과거봉수정 처리를 확인한다.

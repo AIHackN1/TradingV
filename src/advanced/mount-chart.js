@@ -21,5 +21,5 @@ export function mountApexChart({Widget,container,datafeed,session,symbol,resolut
       Promise.resolve().then(()=>widget.activeChart().createStudy(STUDY_NAME,false,false)).then(resolve,reject);
     });
   });
-  return {widget,ready,destroy:()=>widget.remove()};
+  return {widget,ready,destroy:()=>{try{widget.remove();}finally{datafeed.dispose?.();}}};
 }
