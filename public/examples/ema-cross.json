@@ -1,0 +1,35 @@
+{
+  "type": "tradingv-indicator",
+  "version": 1,
+  "name": "내 EMA 20/60 교차",
+  "lines": [
+    {
+      "id": "fast",
+      "method": "ema",
+      "source": "close",
+      "period": 20,
+      "color": "#49d6ad"
+    },
+    {
+      "id": "slow",
+      "method": "ema",
+      "source": "close",
+      "period": 60,
+      "color": "#c3a5ff"
+    }
+  ],
+  "signals": [
+    {
+      "op": "cross-up",
+      "left": "fast",
+      "right": "slow",
+      "direction": "LONG"
+    },
+    {
+      "op": "cross-down",
+      "left": "fast",
+      "right": "slow",
+      "direction": "SHORT"
+    }
+  ]
+}
