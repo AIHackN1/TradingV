@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zetro System · N1 Trading Terminal</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0e14;
+      --bg-secondary: #11161f;
+      --bg-tertiary: #171e2b;
+      --border-color: #1e2636;
+      --text-main: #e2e8f0;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-up: #10b981;
+      --accent-down: #ef4444;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0b0e14; }
+    ::-webkit-scrollbar-thumb { background: #263044; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b4b6b; }
+    .zetro-tab-active {
+      background: rgba(59, 130, 246, 0.14);
+      color: #60a5fa;
+      border-bottom: 2px solid #3b82f6;
+    }
+    .tf-btn-active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .rail-btn-active {
+      background: rgba(59, 130, 246, 0.18);
+      color: #60a5fa;
+      border-left: 2px solid #3b82f6;
+    }
+    .tool-btn-active {
+      background: rgba(59, 130, 246, 0.22);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.5);
+    }
+    .chart-watermark {
+      pointer-events: none;
+      position: absolute;
+      bottom: 34px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(148, 163, 184, 0.08);
+      z-index: 5;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen w-screen bg-[#0b0e14] text-slate-200">
+
+  <!-- 1. TOP NAVIGATION BAR (Zetro System Header) -->
+  <header class="h-10 bg-[#0f131c] border-b border-[#1e2636] flex items-center justify-between px-3 shrink-0 z-30">
+    <div class="flex items-center gap-3 overflow-x-auto no-scrollbar">
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-2 pr-2 border-r border-[#1e2636]">
+        <div class="w-6 h-6 rounded bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-xs text-white shadow">Z</div>
+        <span class="font-bold text-sm tracking-tight text-white whitespace-nowrap">Zetro System</span>
+        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">N1 PRO · NO LOGIN</span>
+      </div>
+
+      <!-- Layout Preset Tabs (Single chart, Bitcoin split, Altcoin split, Majors comp) -->
+      <nav class="flex items-center gap-1" id="layoutPresetTabs">
+        <button type="button" data-preset="single" class="preset-tab zetro-tab-active px-2.5 py-1.5 text-xs font-medium rounded-t transition flex items-center gap-1.5 whitespace-nowrap">
+          <i data-lucide="Maximize2" class="w-3.5 h-3.5"></i>
+          <span data-i18n="singleChart">Single chart</span>
+        </button>
+        <button type="button" data-preset="btc_split" class="preset-tab text-slate-400 hover:text-slate-200 px-2.5 py-1.5 text-xs font-medium rounded-t transition flex items-center gap-1.5 whitespace-nowrap">
+          <i data-lucide="Columns" class="w-3.5 h-3.5"></i>
+          <span data-i18n="btcSplit">Bitcoin split</span>
+        </button>
+        <button type="button" data-preset="alt_split" class="preset-tab text-slate-400 hover:text-slate-200 px-2.5 py-1.5 text-xs font-medium rounded-t transition flex items-center gap-1.5 whitespace-nowrap">
+          <i data-lucide="LayoutGrid" class="w-3.5 h-3.5"></i>
+          <span data-i18n="altSplit">Altcoin split</span>
+        </button>
+        <button type="button" data-preset="majors_comp" class="preset-tab text-slate-400 hover:text-slate-200 px-2.5 py-1.5 text-xs font-medium rounded-t transition flex items-center gap-1.5 whitespace-nowrap">
+          <i data-lucide="Activity" class="w-3.5 h-3.5"></i>
+          <span data-i18n="majorsComp">Majors comp</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Right Header Controls -->
+    <div class="flex items-center gap-2 shrink-0">
+      <div class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#151b26] border border-[#232d42] text-[11px] text-slate-300">
+        <span id="feedDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="feedStatusText" class="font-mono-num">BINANCE LIVE</span>
+      </div>
+      <button type="button" id="btnSupportModal" class="px-2 py-1 text-xs text-slate-300 hover:text-white hover:bg-[#1a2232] rounded flex items-center gap-1 transition">
+        <i data-lucide="HelpCircle" class="w-3.5 h-3.5 text-blue-400"></i>
+        <span data-i18n="support">Support</span>
+      </button>
+      <button type="button" id="btnHeaderLang" class="px-2 py-1 text-xs text-slate-300 hover:text-white hover:bg-[#1a2232] rounded flex items-center gap-1 transition">
+        <i data-lucide="Globe" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span id="headerLangLabel">KO</span>
+      </button>
+      <button type="button" id="btnLicenseStatus" class="px-2.5 py-1 text-xs font-semibold rounded bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 transition flex items-center gap-1">
+        <i data-lucide="ShieldCheck" class="w-3.5 h-3.5"></i>
+        <span data-i18n="unlimitedMode">무제한 모드 (로컬 인증됨)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. CHART CONTROL TOOLBAR (Zetro Sub-Header) -->
+  <div class="h-10 bg-[#11161f] border-b border-[#1e2636] flex items-center justify-between px-3 gap-2 shrink-0 z-20 overflow-x-auto no-scrollbar">
+    <!-- Left: Symbol Selector + Live Stats + Timeframe Buttons -->
+    <div class="flex items-center gap-2 shrink-0">
+      <!-- Symbol Dropdown -->
+      <div class="relative flex items-center">
+        <select id="symbolSelect" aria-label="Select symbol" class="bg-[#171e2b] hover:bg-[#1e2738] text-white font-bold text-xs px-2.5 py-1.5 rounded border border-[#28334a] focus:outline-none focus:border-blue-500 cursor-pointer">
+          <option value="BTCUSDT">BTC USDT perp</option>
+          <option value="ETHUSDT">ETH USDT perp</option>
+          <option value="SOLUSDT">SOL USDT perp</option>
+          <option value="XRPUSDT">XRP USDT perp</option>
+          <option value="HYPEUSDT">HYPE USDT perp</option>
+          <option value="ZECUSDT">ZEC USDT perp</option>
+          <option value="BNBUSDT">BNB USDT perp</option>
+          <option value="DOGEUSDT">DOGE USDT perp</option>
+          <option value="AVAXUSDT">AVAX USDT perp</option>
+          <option value="LINKUSDT">LINK USDT perp</option>
+          <option value="SOXLUSDT">SOXL USDT.P</option>
+        </select>
+      </div>
+
+      <!-- Selected Symbol Live Price Pill -->
+      <div class="flex items-center gap-2 px-2 py-1 rounded bg-[#0b0e14] border border-[#1e2636]">
+        <span id="activePriceDisplay" class="font-mono-num text-xs font-bold text-emerald-400">94,250.00</span>
+        <span id="activeChangeDisplay" class="font-mono-num text-[11px] px-1 rounded bg-emerald-500/15 text-emerald-400">+2.45%</span>
+        <span class="hidden md:inline text-[10px] text-slate-400 font-mono-num" id="activeHighLowDisplay">H: 95,100 L: 92,400</span>
+      </div>
+
+      <div class="h-4 w-[1px] bg-[#1e2636] mx-0.5"></div>
+
+      <!-- Timeframe Selector (1m, 5m, 10m, 15m, 1h, 4h, D, W) -->
+      <div class="flex items-center gap-0.5 bg-[#0b0e14] p-0.5 rounded border border-[#1e2636]" id="timeframeGroup">
+        <button type="button" data-tf="1m" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition">1m</button>
+        <button type="button" data-tf="5m" class="tf-btn tf-btn-active px-2 py-1 text-[11px] font-mono-num rounded transition">5m</button>
+        <button type="button" data-tf="10m" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition" title="N1 10m Custom Resample">10m</button>
+        <button type="button" data-tf="15m" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition">15m</button>
+        <button type="button" data-tf="1h" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition">1h</button>
+        <button type="button" data-tf="4h" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition">4h</button>
+        <button type="button" data-tf="1d" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition">D</button>
+        <button type="button" data-tf="1w" class="tf-btn px-2 py-1 text-[11px] font-mono-num rounded text-slate-400 hover:text-white transition">W</button>
+      </div>
+
+      <div class="h-4 w-[1px] bg-[#1e2636] mx-0.5"></div>
+
+      <!-- ATH Indicators Quick Toggle Buttons -->
+      <div class="flex items-center gap-1">
+        <button type="button" id="btnToggleAthModal" class="px-2.5 py-1 text-xs font-medium rounded bg-[#171e2b] hover:bg-[#222c40] text-blue-400 border border-blue-500/30 flex items-center gap-1.5 transition">
+          <i data-lucide="Sliders" class="w-3.5 h-3.5"></i>
+          <span>ATH indicators</span>
+          <span id="activeIndCount" class="px-1.5 py-0.2 bg-blue-500/20 text-blue-300 rounded text-[10px] font-mono-num">4</span>
+        </button>
+        <button type="button" id="btnQuickApex" class="px-2 py-1 text-[11px] font-medium rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition">
+          APEX Cloud
+        </button>
+        <button type="button" id="btnQuickAthLines" class="px-2 py-1 text-[11px] font-medium rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition">
+          ATH/ATL Lines
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Engine Mode, Layout Saving, Share Chart, Split Screen -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <!-- Engine Mode Switcher (N1 Custom Engine vs TradingView Embed) -->
+      <div class="flex items-center bg-[#0b0e14] p-0.5 rounded border border-[#1e2636]">
+        <button type="button" id="btnEngineN1" class="px-2 py-0.5 text-[11px] font-medium rounded bg-blue-600 text-white transition">N1·Zetro 엔진</button>
+        <button type="button" id="btnEngineTV" class="px-2 py-0.5 text-[11px] font-medium rounded text-slate-400 hover:text-white transition">TradingView 위젯</button>
+      </div>
+
+      <button type="button" id="btnSaveLayout" class="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-[#171e2b] hover:bg-[#1f293a] rounded border border-[#263147] flex items-center gap-1 transition">
+        <i data-lucide="CheckCircle2" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span id="saveLayoutText">Layout · Saved</span>
+      </button>
+
+      <button type="button" id="btnShareChart" class="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-[#171e2b] hover:bg-[#1f293a] rounded border border-[#263147] flex items-center gap-1 transition">
+        <i data-lucide="Share2" class="w-3.5 h-3.5 text-blue-400"></i>
+        <span>Share chart</span>
+      </button>
+
+      <button type="button" id="btnCycleSplit" class="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-[#171e2b] hover:bg-[#1f293a] rounded border border-[#263147] flex items-center gap-1 transition">
+        <i data-lucide="Grid" class="w-3.5 h-3.5 text-purple-400"></i>
+        <span id="splitModeLabel">Split screen (1x1)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. MAIN WORKSPACE AREA (Left Drawing Bar + Center Multi-Chart Grid + Right Collapsible Sidebar + Far-Right 11-Icon Strip) -->
+  <div class="flex-1 flex min-h-0 overflow-hidden relative">
+
+    <!-- 3A. LEFT VERTICAL DRAWING TOOLBAR -->
+    <aside class="w-10 bg-[#0f131c] border-r border-[#1e2636] flex flex-col items-center py-2 gap-1.5 shrink-0 z-20" id="drawingToolbar">
+      <button type="button" data-draw="cursor" class="draw-tool-btn tool-btn-active w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:text-white transition" title="교차점 커서 (Crosshair)">
+        <i data-lucide="Crosshair" class="w-4 h-4"></i>
+      </button>
+      <button type="button" data-draw="trendline" class="draw-tool-btn w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white transition" title="추세선 그리기 (Trendline - 두 점 클릭)">
+        <i data-lucide="TrendingUp" class="w-4 h-4"></i>
+      </button>
+      <button type="button" data-draw="hline" class="draw-tool-btn w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white transition" title="수평 지지/저항선 (Horizontal Line)">
+        <i data-lucide="Minus" class="w-4 h-4"></i>
+      </button>
+      <button type="button" data-draw="fib" class="draw-tool-btn w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white transition" title="피보나치 되돌림 (Fibonacci - 두 점 클릭)">
+        <i data-lucide="AlignJustify" class="w-4 h-4"></i>
+      </button>
+      <button type="button" data-draw="rect" class="draw-tool-btn w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white transition" title="매물대 박스 (Rectangle Zone - 두 점 클릭)">
+        <i data-lucide="Square" class="w-4 h-4"></i>
+      </button>
+      <button type="button" data-draw="text" class="draw-tool-btn w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white transition" title="차트 메모 추가 (Text Label)">
+        <i data-lucide="Type" class="w-4 h-4"></i>
+      </button>
+      <button type="button" data-draw="ruler" class="draw-tool-btn w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white transition" title="수익률/변동폭 측정 자 (Price Range Ruler)">
+        <i data-lucide="Ruler" class="w-4 h-4"></i>
+      </button>
+
+      <div class="w-5 h-[1px] bg-[#1e2636] my-1"></div>
+
+      <!-- Drawing Color Swatch -->
+      <input type="color" id="drawColorPicker" value="#3b82f6" title="드로잉 색상 선택" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0" />
+
+      <button type="button" id="btnZoomReset" class="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#1a2232] transition" title="차트 배율 초기화 (Reset Zoom)">
+        <i data-lucide="RotateCcw" class="w-4 h-4"></i>
+      </button>
+      <button type="button" id="btnClearDrawings" class="w-7 h-7 rounded flex items-center justify-center text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition" title="작도 전체 지우기 (Clear All Drawings)">
+        <i data-lucide="Trash2" class="w-4 h-4"></i>
+      </button>
+    </aside>
+
+    <!-- 3B. CENTER MULTI-CHART WORKSPACE -->
+    <main class="flex-1 flex flex-col min-w-0 bg-[#0b0e14] relative overflow-hidden">
+      <!-- Active Indicators Status Strip Inside Top of Main Chart -->
+      <div class="h-7 bg-[#0d1119]/90 border-b border-[#1e2636] px-3 flex items-center justify-between text-[11px] shrink-0 z-10">
+        <div class="flex items-center gap-3 overflow-x-auto no-scrollbar">
+          <span class="font-bold text-slate-200" id="legendSymbolTitle">BTC USDT perp · 5m · BINANCE</span>
+          <span class="font-mono-num text-slate-400" id="legendOHLC">O: 94,120.0 H: 94,390.0 L: 94,050.0 C: 94,250.0</span>
+          <span id="badgeApexCloud" class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">APEX 4-Range Cloud: ON</span>
+          <span id="badgeEmaCloud" class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">EMA 20/50 Cloud: ON</span>
+          <span id="badgeAthLines" class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">ATH/ATL Lines: ON</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="drawStatusHint" class="text-[11px] text-blue-400 font-medium">커서 모드</span>
+          <button type="button" id="btnDownloadCsv" class="px-2 py-0.5 rounded bg-[#171e2b] hover:bg-[#222c40] text-slate-300 text-[10px] border border-[#263147] transition">CSV 다운로드</button>
+        </div>
+      </div>
+
+      <!-- Multi-Chart Grid Container -->
+      <div id="chartGridContainer" class="flex-1 grid grid-cols-1 grid-rows-1 gap-[1px] bg-[#1e2636] relative min-h-0">
+        <!-- Pane 0 (Primary Chart) -->
+        <div id="chartPane0" class="relative bg-[#0b0e14] flex flex-col min-h-0 overflow-hidden">
+          <div class="absolute top-2 left-3 z-10 flex items-center gap-2 pointer-events-none">
+            <span id="pane0Title" class="px-2 py-0.5 rounded bg-[#151b26]/90 border border-[#263147] text-[11px] font-bold text-slate-200">BTC USDT perp · 5m</span>
+            <span id="pane0SignalBadge" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">APEX LONG SIGNAL ▲</span>
+          </div>
+          <div class="chart-watermark">ath.zetro.io · N1 TERMINAL</div>
+          <!-- Chart Mount Div -->
+          <div id="lwChart0" class="w-full flex-1 relative min-h-[240px]"></div>
+          <!-- Interactive SVG Drawing Overlay on Primary Chart -->
+          <svg id="drawingSvgOverlay" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></svg>
+          <!-- TradingView Widget Fallback/Toggle Container -->
+          <div id="tvWidgetContainer" class="hidden absolute inset-0 w-full h-full z-20 bg-[#0b0e14]"></div>
+        </div>
+
+        <!-- Pane 1 (Secondary Split Chart) -->
+        <div id="chartPane1" class="hidden relative bg-[#0b0e14] flex-col min-h-0 overflow-hidden">
+          <div class="absolute top-2 left-3 z-10 flex items-center gap-2 pointer-events-none">
+            <span id="pane1Title" class="px-2 py-0.5 rounded bg-[#151b26]/90 border border-[#263147] text-[11px] font-bold text-slate-200">ETH USDT perp · 15m</span>
+            <span id="pane1Price" class="font-mono-num text-xs font-semibold text-emerald-400">3,120.50</span>
+          </div>
+          <div class="chart-watermark">ath.zetro.io</div>
+          <div id="lwChart1" class="w-full flex-1 relative min-h-[160px]"></div>
+        </div>
+
+        <!-- Pane 2 (Tertiary Split Chart) -->
+        <div id="chartPane2" class="hidden relative bg-[#0b0e14] flex-col min-h-0 overflow-hidden">
+          <div class="absolute top-2 left-3 z-10 flex items-center gap-2 pointer-events-none">
+            <span id="pane2Title" class="px-2 py-0.5 rounded bg-[#151b26]/90 border border-[#263147] text-[11px] font-bold text-slate-200">SOL USDT perp · 15m</span>
+            <span id="pane2Price" class="font-mono-num text-xs font-semibold text-emerald-400">192.40</span>
+          </div>
+          <div class="chart-watermark">ath.zetro.io</div>
+          <div id="lwChart2" class="w-full flex-1 relative min-h-[160px]"></div>
+        </div>
+
+        <!-- Pane 3 (Quaternary Split Chart) -->
+        <div id="chartPane3" class="hidden relative bg-[#0b0e14] flex-col min-h-0 overflow-hidden">
+          <div class="absolute top-2 left-3 z-10 flex items-center gap-2 pointer-events-none">
+            <span id="pane3Title" class="px-2 py-0.5 rounded bg-[#151b26]/90 border border-[#263147] text-[11px] font-bold text-slate-200">HYPE USDT perp · 15m</span>
+            <span id="pane3Price" class="font-mono-num text-xs font-semibold text-emerald-400">28.65</span>
+          </div>
+          <div class="chart-watermark">ath.zetro.io</div>
+          <div id="lwChart3" class="w-full flex-1 relative min-h-[160px]"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 3C. RIGHT SIDEBAR PANEL (Switched by Far-Right 11-Icon Strip) -->
+    <aside id="rightSidebarPanel" class="w-80 bg-[#11161f] border-l border-[#1e2636] flex flex-col shrink-0 z-20 overflow-hidden">
+
+      <!-- Panel Header -->
+      <div class="h-9 px-3 border-b border-[#1e2636] flex items-center justify-between bg-[#0f131c] shrink-0">
+        <span id="rightPanelTitle" class="text-xs font-bold tracking-wide text-slate-200 uppercase">Watchlist · 관심종목</span>
+        <button type="button" id="btnCollapseSidebar" class="text-slate-400 hover:text-white p-1 rounded" title="패널 접기/펴기">
+          <i data-lucide="PanelRightClose" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- TAB 1: WATCHLIST (Pinned / Favorites / Index + Search) -->
+      <div id="panelWatch" class="right-panel-view flex-1 flex flex-col min-h-0 overflow-hidden">
+        <!-- Search Symbol Input -->
+        <div class="p-2 border-b border-[#1e2636] flex items-center gap-1.5">
+          <div class="relative flex-1">
+            <i data-lucide="Search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+            <input type="text" id="watchSearchInput" placeholder="Find symbol · name or initials" class="w-full bg-[#0b0e14] text-xs text-slate-200 pl-8 pr-2 py-1.5 rounded border border-[#232d42] focus:outline-none focus:border-blue-500" />
+          </div>
+          <button type="button" id="btnAddCustomSymbol" class="px-2 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded transition" title="종목 추가">+</button>
+        </div>
+
+        <!-- Category Sub-tabs: Pinned | Favorites | Index -->
+        <div class="flex border-b border-[#1e2636] bg-[#0d1119] text-[11px] font-medium" id="watchCategoryTabs">
+          <button type="button" data-wcat="all" class="watch-cat-btn flex-1 py-1.5 text-center text-blue-400 border-b-2 border-blue-500">Pinned</button>
+          <button type="button" data-wcat="fav" class="watch-cat-btn flex-1 py-1.5 text-center text-slate-400 hover:text-slate-200">Favorites</button>
+          <button type="button" data-wcat="index" class="watch-cat-btn flex-1 py-1.5 text-center text-slate-400 hover:text-slate-200">Index / Perp</button>
+        </div>
+
+        <!-- Column Headers -->
+        <div class="grid grid-cols-12 px-3 py-1.5 text-[10px] font-semibold text-slate-400 border-b border-[#1e2636] bg-[#0b0e14]">
+          <div class="col-span-5">Symbol</div>
+          <div class="col-span-4 text-right">Last Price</div>
+          <div class="col-span-3 text-right">24h %</div>
+        </div>
+
+        <!-- Watchlist Items Container -->
+        <div id="watchlistContainer" class="flex-1 overflow-y-auto divide-y divide-[#182030]"></div>
+      </div>
+
+      <!-- TAB 2: INDICATORS (ATH Indicators & N1 APEX Cloud Studio) -->
+      <div id="panelIndicators" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-3">
+        <div class="p-2.5 rounded bg-[#171e2b] border border-[#263147]">
+          <div class="text-xs font-bold text-blue-400 mb-1">ATH Indicators & N1 Overlay</div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">Zetro 전용 전고점/전저점(ATH·ATL) 자동 트래커와 N1 터미널의 APEX 구름대 지표를 실시간 합성합니다.</p>
+        </div>
+
+        <div class="space-y-2" id="indicatorTogglesList">
+          <label class="flex items-center justify-between p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] cursor-pointer">
+            <div>
+              <div class="text-xs font-semibold text-slate-200">APEX · Four Range Cloud</div>
+              <div class="text-[10px] text-slate-400">다중 변동성 구름대 및 매수/매도 타점 마커</div>
+            </div>
+            <input type="checkbox" id="chkIndApex" checked class="w-4 h-4 accent-blue-500" />
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] cursor-pointer">
+            <div>
+              <div class="text-xs font-semibold text-slate-200">EMA Cloud (20 / 50)</div>
+              <div class="text-[10px] text-slate-400">단기·중기 지수이동평균 추세 구름대</div>
+            </div>
+            <input type="checkbox" id="chkIndEma" checked class="w-4 h-4 accent-blue-500" />
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] cursor-pointer">
+            <div>
+              <div class="text-xs font-semibold text-amber-300">Zetro ATH / ATL Auto Lines</div>
+              <div class="text-[10px] text-slate-400">구간 최고점(ATH)·최저점(ATL) 및 0.5 중심선</div>
+            </div>
+            <input type="checkbox" id="chkIndAth" checked class="w-4 h-4 accent-amber-500" />
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] cursor-pointer">
+            <div>
+              <div class="text-xs font-semibold text-purple-300">Volume Profile (매물대)</div>
+              <div class="text-[10px] text-slate-400">가격대별 거래량 집중 구간(POC) 수평선</div>
+            </div>
+            <input type="checkbox" id="chkIndVp" checked class="w-4 h-4 accent-purple-500" />
+          </label>
+        </div>
+
+        <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-300 font-medium">APEX 시그널 민감도 (Multiplier)</span>
+            <span id="apexMultValue" class="font-mono-num text-blue-400">1.8x</span>
+          </div>
+          <input type="range" id="rngApexMult" min="1.0" max="3.5" step="0.2" value="1.8" class="w-full accent-blue-500" />
+        </div>
+      </div>
+
+      <!-- TAB 3: SCREENER (실시간 조건 검색기) -->
+      <div id="panelScreener" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div class="p-2 border-b border-[#1e2636] flex gap-1 bg-[#0d1119]" id="screenerFilterGroup">
+          <button type="button" data-sfilter="all" class="sfilter-btn px-2 py-1 text-[11px] rounded bg-blue-600 text-white">전체</button>
+          <button type="button" data-sfilter="bull" class="sfilter-btn px-2 py-1 text-[11px] rounded bg-[#171e2b] text-emerald-400">APEX 강세</button>
+          <button type="button" data-sfilter="bear" class="sfilter-btn px-2 py-1 text-[11px] rounded bg-[#171e2b] text-rose-400">APEX 약세</button>
+          <button type="button" data-sfilter="rsi" class="sfilter-btn px-2 py-1 text-[11px] rounded bg-[#171e2b] text-amber-300">과매수/과매도</button>
+        </div>
+        <div id="screenerListContainer" class="flex-1 overflow-y-auto divide-y divide-[#182030] p-2 space-y-1.5"></div>
+      </div>
+
+      <!-- TAB 4: ORDERBOOK (실시간 호가창 & 체결) -->
+      <div id="panelBook" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-hidden p-2">
+        <div class="flex justify-between text-[10px] text-slate-400 px-2 py-1 border-b border-[#1e2636]">
+          <span>Price (USDT)</span>
+          <span>Size</span>
+          <span>Total (USDT)</span>
+        </div>
+        <!-- Asks (Red) -->
+        <div id="orderbookAsks" class="flex-1 flex flex-col justify-end space-y-0.5 font-mono-num text-[11px] py-1 overflow-hidden"></div>
+        <!-- Mid Price Spread Banner -->
+        <div class="py-1.5 px-2 my-1 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between">
+          <span id="obMidPrice" class="font-mono-num text-sm font-bold text-emerald-400">94,250.00</span>
+          <span id="obSpreadText" class="font-mono-num text-[10px] text-slate-400">Spread: 0.10 (0.01%)</span>
+        </div>
+        <!-- Bids (Green) -->
+        <div id="orderbookBids" class="flex-1 flex flex-col justify-start space-y-0.5 font-mono-num text-[11px] py-1 overflow-hidden"></div>
+      </div>
+
+      <!-- TAB 5: MASTERS (Zetro Masters 롱/숏 비율 & 리더보드) -->
+      <div id="panelMasters" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-3">
+        <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636]">
+          <div class="flex justify-between text-xs font-semibold mb-1.5">
+            <span class="text-emerald-400" id="masterLongPct">Long 64.2%</span>
+            <span class="text-slate-400">Top Traders Ratio</span>
+            <span class="text-rose-400" id="masterShortPct">Short 35.8%</span>
+          </div>
+          <div class="w-full h-2.5 rounded-full bg-rose-500/40 overflow-hidden flex">
+            <div id="masterLongBar" class="bg-emerald-500 h-full" style="width: 64.2%"></div>
+          </div>
+        </div>
+        <div class="text-[11px] font-bold text-slate-400 uppercase">Masters Live Positions</div>
+        <div id="mastersListContainer" class="space-y-2"></div>
+      </div>
+
+      <!-- TAB 6: ALERTS (N1 Terminal 알람 센터) -->
+      <div id="panelAlerts" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-3">
+        <div class="p-2.5 rounded bg-[#171e2b] border border-[#263147] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">N1 봉 마감 알람 센터</span>
+            <span id="alertCountBadge" class="px-1.5 py-0.5 text-[10px] font-mono-num rounded bg-blue-500/20 text-blue-300">2 Active</span>
+          </div>
+          <p class="text-[11px] text-slate-400">창이 열려 있을 때 봉 마감 및 목표가 도달 시 즉시 사운드와 알림을 발생시킵니다.</p>
+          <div class="flex items-center gap-2 pt-1">
+            <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+              <input type="checkbox" id="chkAlertSound" checked class="accent-blue-500" />
+              <span>알림 사운드</span>
+            </label>
+            <button type="button" id="btnTestAlertSound" class="ml-auto px-2 py-1 text-[11px] rounded bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 transition">
+              알림 전달 테스트
+            </button>
+          </div>
+        </div>
+
+        <!-- Add New Alert Form -->
+        <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-2">
+          <div class="text-xs font-semibold text-slate-200">+ 새 알람 추가</div>
+          <select id="alertConditionSelect" aria-label="Alert condition" class="w-full bg-[#151b26] text-xs text-slate-200 p-1.5 rounded border border-[#263147]">
+            <option value="APEX_SIGNAL">APEX 매수/매도 시그널 발생 시</option>
+            <option value="PRICE_ABOVE">현재가가 목표가 이상 돌파 시</option>
+            <option value="PRICE_BELOW">현재가가 목표가 이하 이탈 시</option>
+            <option value="ATH_BREAK">구간 ATH 고점 갱신 시</option>
+          </select>
+          <input type="number" id="alertTargetPriceInput" placeholder="목표 가격 (선택, USDT)" class="w-full bg-[#151b26] text-xs text-slate-200 p-1.5 rounded border border-[#263147] font-mono-num" />
+          <button type="button" id="btnCreateAlert" class="w-full py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">+ 알람 만들기</button>
+        </div>
+
+        <!-- Active Alerts List -->
+        <div id="alertsListContainer" class="space-y-1.5"></div>
+      </div>
+
+      <!-- TAB 7: NEWS (실시간 크립토 헤드라인) -->
+      <div id="panelNews" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-2.5" id="newsFeedContainer">
+        <div id="newsItemsList" class="space-y-2"></div>
+      </div>
+
+      <!-- TAB 8: POSITIONS (선물 포지션 & 청산가 시뮬레이터) -->
+      <div id="panelPositions" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-3">
+        <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-2.5">
+          <div class="flex gap-1">
+            <button type="button" id="btnPosLong" class="flex-1 py-1.5 text-xs font-bold rounded bg-emerald-600 text-white">LONG (매수)</button>
+            <button type="button" id="btnPosShort" class="flex-1 py-1.5 text-xs font-bold rounded bg-[#171e2b] text-slate-400">SHORT (매도)</button>
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+              <span>레버리지 (Leverage)</span>
+              <span id="posLevLabel" class="font-mono-num text-blue-400 font-bold">20x</span>
+            </div>
+            <input type="range" id="rngPosLev" min="1" max="100" value="20" class="w-full accent-blue-500" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400">진입가 (USDT)</label>
+              <input type="number" id="posEntryInput" value="94250" class="w-full bg-[#151b26] text-xs text-white p-1.5 rounded border border-[#263147] font-mono-num" />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400">증거금 (USDT)</label>
+              <input type="number" id="posMarginInput" value="1000" class="w-full bg-[#151b26] text-xs text-white p-1.5 rounded border border-[#263147] font-mono-num" />
+            </div>
+          </div>
+          <div class="p-2 rounded bg-[#151b26] text-[11px] space-y-1 font-mono-num">
+            <div class="flex justify-between"><span class="text-slate-400">포지션 규모:</span><span id="posSizeResult" class="text-slate-200">$20,000</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">예상 청산가:</span><span id="posLiqResult" class="text-amber-400">89,914.50</span></div>
+          </div>
+          <button type="button" id="btnOpenSimPosition" class="w-full py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">모의 포지션 진입 기록</button>
+        </div>
+        <div class="text-[11px] font-bold text-slate-400 uppercase">Active Simulated Positions</div>
+        <div id="simPositionsList" class="space-y-2"></div>
+      </div>
+
+      <!-- TAB 9: EVENTS (주요 경제/크립토 일정) -->
+      <div id="panelEvents" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-2">
+        <div id="eventsListContainer" class="space-y-2"></div>
+      </div>
+
+      <!-- TAB 10: OBJECTS (드로잉 객체 트리) -->
+      <div id="panelObjects" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-2">
+        <div class="text-[11px] text-slate-400 mb-1">차트에 작도한 추세선, 수평선, 피보나치, 박스 목록입니다.</div>
+        <div id="objectsTreeContainer" class="space-y-1.5"></div>
+      </div>
+
+      <!-- TAB 11: SCRIPTS (N1 커스텀 수식 & 로컬 데이터 백업) -->
+      <div id="panelScripts" class="right-panel-view hidden flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-3">
+        <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-2">
+          <div class="text-xs font-bold text-slate-200">N1 Indicator Script Studio</div>
+          <textarea id="customScriptTextarea" rows="5" class="w-full bg-[#151b26] text-[11px] font-mono-num text-emerald-300 p-2 rounded border border-[#263147] focus:outline-none">// Zetro x N1 Custom Signal Formula
+emaFast = EMA(close, 20)
+emaSlow = EMA(close, 50)
+athLevel = HIGHEST(high, 120)
+plot(athLevel, color="#f59e0b")</textarea>
+          <button type="button" id="btnApplyCustomScript" class="w-full py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">스크립트 컴파일 및 차트 적용</button>
+        </div>
+
+        <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-2">
+          <div class="text-xs font-bold text-slate-200">워크스페이스 백업 / 복원</div>
+          <p class="text-[11px] text-slate-400">로그인 없이 모든 관심종목, 알람, 드로잉 데이터를 JSON으로 내보내거나 불러옵니다.</p>
+          <div class="flex gap-2">
+            <button type="button" id="btnExportJson" class="flex-1 py-1.5 rounded bg-[#171e2b] hover:bg-[#222c40] text-xs text-slate-200 border border-[#263147] transition">JSON 백업 복사</button>
+            <button type="button" id="btnResetWorkspace" class="flex-1 py-1.5 rounded bg-rose-500/15 hover:bg-rose-500/25 text-xs text-rose-300 border border-rose-500/30 transition">초기화</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- 3D. FAR-RIGHT 11-ICON VERTICAL RAIL (Exact Zetro System Right Strip) -->
+    <nav class="w-12 bg-[#0f131c] border-l border-[#1e2636] flex flex-col items-center py-1.5 gap-1 shrink-0 z-30 overflow-y-auto no-scrollbar" id="rightIconRail">
+      <button type="button" data-rtab="Watch" class="rail-tab-btn rail-btn-active w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="List" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Watch</span>
+      </button>
+      <button type="button" data-rtab="Indicators" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="BarChart2" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Indicators</span>
+      </button>
+      <button type="button" data-rtab="Screener" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Filter" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Screener</span>
+      </button>
+      <button type="button" data-rtab="Book" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="BookOpen" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Book</span>
+      </button>
+      <button type="button" data-rtab="Masters" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Award" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Masters</span>
+      </button>
+      <button type="button" data-rtab="Alerts" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Bell" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Alerts</span>
+      </button>
+      <button type="button" data-rtab="News" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Newspaper" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">News</span>
+      </button>
+      <button type="button" data-rtab="Positions" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Briefcase" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Positions</span>
+      </button>
+      <button type="button" data-rtab="Events" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Calendar" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Events</span>
+      </button>
+      <button type="button" data-rtab="Objects" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Layers" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Objects</span>
+      </button>
+      <button type="button" data-rtab="Scripts" class="rail-tab-btn w-11 py-1.5 flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition">
+        <i data-lucide="Code" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium">Scripts</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- 4. BOTTOM STATUS BAR (Zetro Ticker Bar + Language + TradingView Credit + KST Live Clock) -->
+  <footer class="h-7 bg-[#0f131c] border-t border-[#1e2636] px-3 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-30">
+    <!-- Live Mini Ticker Strip -->
+    <div id="bottomTickerStrip" class="flex items-center gap-4 overflow-x-auto no-scrollbar font-mono-num text-[10px]"></div>
+
+    <!-- Right Footer Metadata -->
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="flex items-center gap-1">
+        <button type="button" id="btnFooterKo" class="text-blue-400 hover:underline font-medium">한국어로 보기</button>
+        <span>|</span>
+        <button type="button" id="btnFooterEn" class="text-slate-400 hover:underline">English</button>
+      </div>
+      <span class="hidden sm:inline text-slate-500">Charts by TradingView</span>
+      <span id="kstClockDisplay" class="font-mono-num text-slate-200 font-semibold">KST 22:55:00</span>
+    </div>
+  </footer>
+
+  <!-- MODAL: Support / Guide & Add Symbol Modal -->
+  <div id="supportModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#11161f] border border-[#263147] rounded-lg max-w-lg w-full p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#1e2636] pb-3">
+        <h3 class="text-sm font-bold text-white">Zetro System × N1 Terminal 통합 가이드</h3>
+        <button type="button" id="btnCloseSupportModal" class="text-slate-400 hover:text-white text-xs px-2 py-1 rounded bg-[#171e2b]">닫기</button>
+      </div>
+      <div class="text-xs text-slate-300 space-y-2.5 leading-relaxed">
+        <p><strong class="text-blue-400">1. 무제한 로컬 모드 (로그인/7일 제한 없음):</strong> 모든 레이아웃, 관심종목, 드로잉, 알람 규칙이 브라우저 <code>localStorage</code>에 영구 저장됩니다.</p>
+        <p><strong class="text-emerald-400">2. 멀티 차트 프리셋:</strong> 상단의 <code>Single chart</code>, <code>Bitcoin split</code>, <code>Altcoin split</code>, <code>Majors comp</code> 탭을 눌러 1분할/2분할/4분할 화면을 즉시 전환할 수 있습니다.</p>
+        <p><strong class="text-amber-300">3. ATH Indicators + APEX 구름대:</strong> Zetro의 전고점/전저점(ATH·ATL) 자동 수평선과 기존 N1 Terminal의 <code>APEX Four Range Cloud</code>, <code>EMA 20/50 구름대</code>, <code>10m 커스텀 봉</code>을 동시에 지원합니다.</p>
+        <p><strong class="text-purple-300">4. 우측 11개 전문 도구 탭:</strong> <code>Watch</code>(관심종목), <code>Indicators</code>(지표), <code>Screener</code>(스크리너), <code>Book</code>(실시간 호가창), <code>Masters</code>(고래 비율), <code>Alerts</code>(봉 마감 알람), <code>Positions</code>(청산가 계산기), <code>Objects</code>(작도 관리)를 모두 사용할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastContainer" class="fixed bottom-10 right-16 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    // =========================================================================
+    // ZETRO SYSTEM x N1 TERMINAL INTEGRATED ENGINE
+    // =========================================================================
+    const STORAGE_KEY = 'zetro_n1_workspace_v1';
+
+    const DEFAULT_SYMBOLS = [
+      { symbol: 'BTCUSDT', label: 'BTC USDT perp', short: 'BTC', basePrice: 94250.0, change: 2.45, pinned: true, fav: true, cat: 'index', vol: '42.8B' },
+      { symbol: 'ETHUSDT', label: 'ETH USDT perp', short: 'ETH', basePrice: 3120.5, change: 1.82, pinned: true, fav: true, cat: 'index', vol: '18.4B' },
+      { symbol: 'SOLUSDT', label: 'SOL USDT perp', short: 'SOL', basePrice: 192.4, change: 4.65, pinned: true, fav: true, cat: 'index', vol: '7.9B' },
+      { symbol: 'XRPUSDT', label: 'XRP USDT perp', short: 'XRP', basePrice: 1.482, change: -0.95, pinned: true, fav: false, cat: 'index', vol: '5.1B' },
+      { symbol: 'HYPEUSDT', label: 'HYPE USDT perp', short: 'HYPE', basePrice: 28.65, change: 8.40, pinned: true, fav: true, cat: 'index', vol: '1.9B' },
+      { symbol: 'ZECUSDT', label: 'ZEC USDT perp', short: 'ZEC', basePrice: 44.80, change: -1.35, pinned: true, fav: false, cat: 'all', vol: '320M' },
+      { symbol: 'BNBUSDT', label: 'BNB USDT perp', short: 'BNB', basePrice: 648.2, change: 0.75, pinned: true, fav: false, cat: 'index', vol: '2.1B' },
+      { symbol: 'DOGEUSDT', label: 'DOGE USDT perp', short: 'DOGE', basePrice: 0.368, change: 5.12, pinned: false, fav: true, cat: 'all', vol: '4.4B' },
+      { symbol: 'AVAXUSDT', label: 'AVAX USDT perp', short: 'AVAX', basePrice: 34.90, change: 2.15, pinned: false, fav: false, cat: 'all', vol: '980M' },
+      { symbol: 'LINKUSDT', label: 'LINK USDT perp', short: 'LINK', basePrice: 18.45, change: -0.45, pinned: false, fav: false, cat: 'all', vol: '610M' },
+      { symbol: 'SOXLUSDT', label: 'SOXL USDT.P', short: 'SOXL', basePrice: 31.25, change: 3.10, pinned: true, fav: true, cat: 'index', vol: '890M' }
+    ];
+
+    const state = {
+      lang: 'ko',
+      activeSymbol: 'BTCUSDT',
+      timeframe: '5m',
+      preset: 'single', // single | btc_split | alt_split | majors_comp
+      splitMode: 1,     // 1 | 2 | 4
+      engine: 'n1',     // n1 | tv
+      activeRightTab: 'Watch',
+      watchCategory: 'all',
+      watchSearch: '',
+      screenerFilter: 'all',
+      drawTool: 'cursor',
+      drawColor: '#3b82f6',
+      pendingDrawPoint: null,
+      sidebarCollapsed: false,
+      posSide: 'LONG',
+      posLeverage: 20,
+      indicators: {
+        apexCloud: true,
+        emaCloud: true,
+        athLines: true,
+        volumeProfile: true,
+        apexMultiplier: 1.8
+      },
+      symbols: JSON.parse(JSON.stringify(DEFAULT_SYMBOLS)),
+      drawings: [
+        { id: 'd1', type: 'hline', symbol: 'BTCUSDT', price: 93800, color: '#10b981', label: 'Major Support' },
+        { id: 'd2', type: 'trendline', symbol: 'BTCUSDT', x1: 120, y1: 240, x2: 460, y2: 140, color: '#3b82f6', label: 'Up Trendline' }
+      ],
+      alerts: [
+        { id: 'a1', symbol: 'BTCUSDT', condition: 'APEX_SIGNAL', target: 'Auto', active: true },
+        { id: 'a2', symbol: 'ETHUSDT', condition: 'PRICE_ABOVE', target: '3200', active: true }
+      ],
+      simPositions: [
+        { id: 'p1', symbol: 'BTCUSDT', side: 'LONG', lev: 20, entry: 93400, margin: 1000 }
+      ],
+      candlesBySymbol: {}
+    };
+
+    // Load saved state from localStorage safely
+    function loadSavedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed.activeSymbol) state.activeSymbol = parsed.activeSymbol;
+        if (parsed.timeframe) state.timeframe = parsed.timeframe;
+        if (parsed.indicators) Object.assign(state.indicators, parsed.indicators);
+        if (Array.isArray(parsed.drawings)) state.drawings = parsed.drawings;
+        if (Array.isArray(parsed.alerts)) state.alerts = parsed.alerts;
+        if (Array.isArray(parsed.simPositions)) state.simPositions = parsed.simPositions;
+      } catch (err) {
+        console.warn('Local state load skipped:', err);
+      }
+    }
+
+    function saveWorkspaceState(silent = false) {
+      try {
+        const payload = {
+          activeSymbol: state.activeSymbol,
+          timeframe: state.timeframe,
+          indicators: state.indicators,
+          drawings: state.drawings,
+          alerts: state.alerts,
+          simPositions: state.simPositions
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        const saveLabel = document.getElementById('saveLayoutText');
+        if (saveLabel) saveLabel.textContent = 'Layout · Saved';
+        if (!silent) showToast('워크스페이스 설정이 브라우저에 영구 저장되었습니다.');
+      } catch (err) {
+        console.warn('Local state save error:', err);
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const el = document.createElement('div');
+      const borderCol = type === 'alert' ? 'border-amber-500 bg-amber-950/90 text-amber-200' : 'border-blue-500/50 bg-[#151c28]/95 text-slate-100';
+      el.className = `px-3 py-2 rounded shadow-lg border text-xs font-medium transition-all duration-300 ${borderCol}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+      }, 2800);
+    }
+
+    // Web Audio API Synthesized Alert Beep
+    function playAlertSound() {
+      const soundChk = document.getElementById('chkAlertSound');
+      if (soundChk && !soundChk.checked) return;
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.18);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.36);
+      } catch (e) {
+        console.warn('Audio skipped:', e);
+      }
+    }
+
+    // Generate realistic candle series for any symbol/timeframe
+    function generateCandles(symbolObj, count = 140) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const tfSecMap = { '1m': 60, '5m': 300, '10m': 600, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400, '1w': 604800 };
+      const step = tfSecMap[state.timeframe] || 300;
+      const alignedNow = Math.floor(nowSec / step) * step;
+      const base = symbolObj ? symbolObj.basePrice : 94250;
+      const volatility = base * 0.0035;
+      let price = base * 0.985;
+      const candles = [];
+      let seed = symbolObj.symbol.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      function pseudoRand() {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+      }
+      for (let i = count; i >= 0; i--) {
+        const t = alignedNow - i * step;
+        const delta = (pseudoRand() - 0.482) * volatility;
+        const open = Number(price.toFixed(base < 5 ? 4 : 2));
+        const close = Number(Math.max(base * 0.5, open + delta).toFixed(base < 5 ? 4 : 2));
+        const high = Number((Math.max(open, close) + pseudoRand() * volatility * 0.75).toFixed(base < 5 ? 4 : 2));
+        const low = Number((Math.min(open, close) - pseudoRand() * volatility * 0.75).toFixed(base < 5 ? 4 : 2));
+        const volume = Math.round((pseudoRand() * 850 + 220) * (base > 1000 ? 1.5 : 10));
+        candles.push({ time: t, open, high, low, close, volume });
+        price = close;
+      }
+      return candles;
+    }
+
+    // Fetch live Binance klines if network permits, otherwise fallback seamlessly
+    async function fetchOrGenerateCandles(symbolCode) {
+      const symObj = state.symbols.find(s => s.symbol === symbolCode) || DEFAULT_SYMBOLS[0];
+      const binanceTf = state.timeframe === '10m' ? '5m' : state.timeframe;
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2200);
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbolCode}&interval=${binanceTf}&limit=120`, { signal: controller.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+          const rows = await res.json();
+          if (Array.isArray(rows) && rows.length > 20) {
+            const mapped = rows.map(r => ({
+              time: Math.floor(r[0] / 1000),
+              open: parseFloat(r[1]),
+              high: parseFloat(r[2]),
+              low: parseFloat(r[3]),
+              close: parseFloat(r[4]),
+              volume: parseFloat(r[5])
+            }));
+            state.candlesBySymbol[symbolCode] = mapped;
+            symObj.basePrice = mapped[mapped.length - 1].close;
+            return mapped;
+          }
+        }
+      } catch (_) {
+        // Fallback to deterministic live simulation
+      }
+      const generated = generateCandles(symObj, 130);
+      state.candlesBySymbol[symbolCode] = generated;
+      return generated;
+    }
+
+    // Calculate EMA series
+    function calcEMA(candles, period) {
+      const k = 2 / (period + 1);
+      let ema = candles[0].close;
+      return candles.map(c => {
+        ema = c.close * k + ema * (1 - k);
+        return { time: c.time, value: Number(ema.toFixed(c.close < 5 ? 4 : 2)) };
+      });
+    }
+
+    // =========================================================================
+    // LIGHTWEIGHT CHARTS MULTI-PANE MANAGER
+    // =========================================================================
+    const chartInstances = [null, null, null, null];
+
+    function createPaneChart(paneIndex, containerId, symbolCode, isPrimary = false) {
+      const container = document.getElementById(containerId);
+      if (!container || typeof LightweightCharts === 'undefined') return null;
+      container.innerHTML = '';
+
+      const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth || 640,
+        height: container.clientHeight || 400,
+        layout: {
+          background: { type: 'solid', color: '#0b0e14' },
+          textColor: '#94a3b8',
+          fontSize: 11
+        },
+        grid: {
+          vertLines: { color: '#141b26' },
+          horzLines: { color: '#141b26' }
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal
+        },
+        rightPriceScale: {
+          borderColor: '#1e2636',
+          scaleMargins: { top: 0.08, bottom: 0.18 }
+        },
+        timeScale: {
+          borderColor: '#1e2636',
+          timeVisible: true,
+          secondsVisible: false
+        }
+      });
+
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#10b981',
+        downColor: '#ef4444',
+        borderUpColor: '#10b981',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#10b981',
+        wickDownColor: '#ef4444'
+      });
+
+      const volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: ''
+      });
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.82, bottom: 0 }
+      });
+
+      const ema20Series = chart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      const ema50Series = chart.addLineSeries({
+        color: '#8b5cf6',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      const apexUpperSeries = chart.addLineSeries({
+        color: 'rgba(16, 185, 129, 0.55)',
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      const apexLowerSeries = chart.addLineSeries({
+        color: 'rgba(239, 68, 68, 0.55)',
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+
+      if (isPrimary) {
+        chart.subscribeCrosshairMove(param => {
+          if (!param || !param.time || !param.seriesData) return;
+          const data = param.seriesData.get(candleSeries);
+          if (data) {
+            const legend = document.getElementById('legendOHLC');
+            if (legend) {
+              legend.textContent = `O: ${data.open}  H: ${data.high}  L: ${data.low}  C: ${data.close}`;
+            }
+          }
+        });
+      }
+
+      const instance = { chart, candleSeries, volumeSeries, ema20Series, ema50Series, apexUpperSeries, apexLowerSeries, priceLines: [], symbolCode };
+      chartInstances[paneIndex] = instance;
+      populateChartPane(paneIndex, symbolCode, isPrimary);
+      return instance;
+    }
+
+    async function populateChartPane(paneIndex, symbolCode, isPrimary = false) {
+      const inst = chartInstances[paneIndex];
+      if (!inst) return;
+      inst.symbolCode = symbolCode;
+      const candles = await fetchOrGenerateCandles(symbolCode);
+      if (!candles || !candles.length) return;
+
+      inst.candleSeries.setData(candles);
+      inst.volumeSeries.setData(candles.map(c => ({
+        time: c.time,
+        value: c.volume,
+        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)'
+      })));
+
+      // Clear previous custom price lines
+      inst.priceLines.forEach(pl => {
+        try { inst.candleSeries.removePriceLine(pl); } catch (_) {}
+      });
+      inst.priceLines = [];
+
+      // EMA 20 / 50 Cloud
+      if (state.indicators.emaCloud) {
+        inst.ema20Series.setData(calcEMA(candles, 20));
+        inst.ema50Series.setData(calcEMA(candles, 50));
+      } else {
+        inst.ema20Series.setData([]);
+        inst.ema50Series.setData([]);
+      }
+
+      // APEX Four Range Cloud + Buy/Sell Markers
+      if (state.indicators.apexCloud) {
+        const mult = state.indicators.apexMultiplier || 1.8;
+        const emaBase = calcEMA(candles, 34);
+        const upper = [];
+        const lower = [];
+        const markers = [];
+
+        for (let i = 0; i < candles.length; i++) {
+          const c = candles[i];
+          const range = (c.high - c.low) * mult;
+          const mid = emaBase[i].value;
+          upper.push({ time: c.time, value: Number((mid + range).toFixed(c.close < 5 ? 4 : 2)) });
+          lower.push({ time: c.time, value: Number((mid - range).toFixed(c.close < 5 ? 4 : 2)) });
+
+          if (i > 15 && i % 22 === 0) {
+            const isBull = c.close >= mid;
+            markers.push({
+              time: c.time,
+              position: isBull ? 'belowBar' : 'aboveBar',
+              color: isBull ? '#10b981' : '#ef4444',
+              shape: isBull ? 'arrowUp' : 'arrowDown',
+              text: isBull ? 'APEX LONG' : 'APEX SHORT'
+            });
+          }
+        }
+        inst.apexUpperSeries.setData(upper);
+        inst.apexLowerSeries.setData(lower);
+        inst.candleSeries.setMarkers(markers);
+      } else {
+        inst.apexUpperSeries.setData([]);
+        inst.apexLowerSeries.setData([]);
+        inst.candleSeries.setMarkers([]);
+      }
+
+      // Zetro ATH / ATL Auto Horizontal Lines
+      if (state.indicators.athLines) {
+        const highs = candles.map(c => c.high);
+        const lows = candles.map(c => c.low);
+        const ath = Math.max(...highs);
+        const atl = Math.min(...lows);
+        const mid = Number(((ath + atl) / 2).toFixed(ath < 5 ? 4 : 2));
+
+        inst.priceLines.push(inst.candleSeries.createPriceLine({
+          price: ath,
+          color: '#f59e0b',
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: 'ZETRO ATH'
+        }));
+        inst.priceLines.push(inst.candleSeries.createPriceLine({
+          price: mid,
+          color: '#64748b',
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dotted,
+          axisLabelVisible: true,
+          title: '0.5 EQ'
+        }));
+        inst.priceLines.push(inst.candleSeries.createPriceLine({
+          price: atl,
+          color: '#38bdf8',
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: 'ZETRO ATL'
+        }));
+      }
+
+      // Volume Profile POC Line
+      if (state.indicators.volumeProfile && isPrimary) {
+        const sortedByVol = [...candles].sort((a, b) => b.volume - a.volume);
+        const pocPrice = sortedByVol[0].close;
+        inst.priceLines.push(inst.candleSeries.createPriceLine({
+          price: pocPrice,
+          color: '#a855f7',
+          lineWidth: 2,
+          lineStyle: LightweightCharts.LineStyle.Solid,
+          axisLabelVisible: true,
+          title: 'VP POC'
+        }));
+      }
+
+      if (isPrimary) {
+        const last = candles[candles.length - 1];
+        updateTopSymbolHeader(symbolCode, last);
+      }
+    }
+
+    function updateTopSymbolHeader(symbolCode, lastCandle) {
+      const symObj = state.symbols.find(s => s.symbol === symbolCode) || DEFAULT_SYMBOLS[0];
+      const priceEl = document.getElementById('activePriceDisplay');
+      const changeEl = document.getElementById('activeChangeDisplay');
+      const hlEl = document.getElementById('activeHighLowDisplay');
+      const legendTitle = document.getElementById('legendSymbolTitle');
+      const pane0Title = document.getElementById('pane0Title');
+
+      const price = lastCandle ? lastCandle.close : symObj.basePrice;
+      const decimals = price < 5 ? 4 : 2;
+      if (priceEl) {
+        priceEl.textContent = price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        priceEl.className = `font-mono-num text-xs font-bold ${symObj.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+      }
+      if (changeEl) {
+        const sign = symObj.change >= 0 ? '+' : '';
+        changeEl.textContent = `${sign}${symObj.change.toFixed(2)}%`;
+        changeEl.className = `font-mono-num text-[11px] px-1 rounded ${symObj.change >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`;
+      }
+      if (hlEl) {
+        const h = (price * 1.018).toFixed(decimals);
+        const l = (price * 0.982).toFixed(decimals);
+        hlEl.textContent = `H: ${h}  L: ${l}`;
+      }
+      const tfLabel = state.timeframe.toUpperCase();
+      if (legendTitle) legendTitle.textContent = `${symObj.label} · ${tfLabel} · BINANCE`;
+      if (pane0Title) pane0Title.textContent = `${symObj.label} · ${tfLabel}`;
+    }
+
+    // Apply Layout Preset (Single, Bitcoin split, Altcoin split, Majors comp)
+    function applyLayoutPreset(preset) {
+      state.preset = preset;
+      const grid = document.getElementById('chartGridContainer');
+      const p1 = document.getElementById('chartPane1');
+      const p2 = document.getElementById('chartPane2');
+      const p3 = document.getElementById('chartPane3');
+      const splitLabel = document.getElementById('splitModeLabel');
+
+      // Highlight active preset tab
+      document.querySelectorAll('.preset-tab').forEach(btn => {
+        if (btn.dataset.preset === preset) {
+          btn.classList.add('zetro-tab-active');
+          btn.classList.remove('text-slate-400');
+        } else {
+          btn.classList.remove('zetro-tab-active');
+          btn.classList.add('text-slate-400');
+        }
+      });
+
+      if (preset === 'single') {
+        state.splitMode = 1;
+        grid.className = 'flex-1 grid grid-cols-1 grid-rows-1 gap-[1px] bg-[#1e2636] relative min-h-0';
+        p1.classList.add('hidden');
+        p2.classList.add('hidden');
+        p3.classList.add('hidden');
+        if (splitLabel) splitLabel.textContent = 'Split screen (1x1)';
+        createPaneChart(0, 'lwChart0', state.activeSymbol, true);
+      } else if (preset === 'btc_split') {
+        state.splitMode = 2;
+        grid.className = 'flex-1 grid grid-cols-1 md:grid-cols-2 grid-rows-1 gap-[1px] bg-[#1e2636] relative min-h-0';
+        p1.classList.remove('hidden'); p1.classList.add('flex');
+        p2.classList.add('hidden');
+        p3.classList.add('hidden');
+        document.getElementById('pane1Title').textContent = 'BTC USDT Spot · 1H Comparison';
+        if (splitLabel) splitLabel.textContent = 'Split screen (1x2)';
+        createPaneChart(0, 'lwChart0', 'BTCUSDT', true);
+        createPaneChart(1, 'lwChart1', 'BTCUSDT', false);
+      } else if (preset === 'alt_split') {
+        state.splitMode = 4;
+        grid.className = 'flex-1 grid grid-cols-2 grid-rows-2 gap-[1px] bg-[#1e2636] relative min-h-0';
+        p1.classList.remove('hidden'); p1.classList.add('flex');
+        p2.classList.remove('hidden'); p2.classList.add('flex');
+        p3.classList.remove('hidden'); p3.classList.add('flex');
+        document.getElementById('pane1Title').textContent = 'SOL USDT perp · 5m';
+        document.getElementById('pane2Title').textContent = 'XRP USDT perp · 5m';
+        document.getElementById('pane3Title').textContent = 'BNB USDT perp · 5m';
+        if (splitLabel) splitLabel.textContent = 'Split screen (2x2)';
+        createPaneChart(0, 'lwChart0', 'ETHUSDT', true);
+        createPaneChart(1, 'lwChart1', 'SOLUSDT', false);
+        createPaneChart(2, 'lwChart2', 'XRPUSDT', false);
+        createPaneChart(3, 'lwChart3', 'BNBUSDT', false);
+      } else if (preset === 'majors_comp') {
+        state.splitMode = 4;
+        grid.className = 'flex-1 grid grid-cols-2 grid-rows-2 gap-[1px] bg-[#1e2636] relative min-h-0';
+        p1.classList.remove('hidden'); p1.classList.add('flex');
+        p2.classList.remove('hidden'); p2.classList.add('flex');
+        p3.classList.remove('hidden'); p3.classList.add('flex');
+        document.getElementById('pane1Title').textContent = 'ETH USDT perp · Majors';
+        document.getElementById('pane2Title').textContent = 'SOL USDT perp · Majors';
+        document.getElementById('pane3Title').textContent = 'HYPE USDT perp · Majors';
+        if (splitLabel) splitLabel.textContent = 'Split screen (2x2)';
+        createPaneChart(0, 'lwChart0', 'BTCUSDT', true);
+        createPaneChart(1, 'lwChart1', 'ETHUSDT', false);
+        createPaneChart(2, 'lwChart2', 'SOLUSDT', false);
+        createPaneChart(3, 'lwChart3', 'HYPEUSDT', false);
+      }
+      setTimeout(resizeAllCharts, 60);
+    }
+
+    function resizeAllCharts() {
+      ['lwChart0', 'lwChart1', 'lwChart2', 'lwChart3'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        const inst = chartInstances[idx];
+        if (el && inst && el.clientWidth > 0 && el.clientHeight > 0) {
+          inst.chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+        }
+      });
+    }
+
+    // =========================================================================
+    // SVG INTERACTIVE DRAWING LAYER + OBJECTS TREE
+    // =========================================================================
+    function renderDrawingsOverlay() {
+      const svg = document.getElementById('drawingSvgOverlay');
+      if (!svg) return;
+      svg.innerHTML = '';
+      const list = state.drawings.filter(d => !d.symbol || d.symbol === state.activeSymbol);
+
+      list.forEach(d => {
+        if (d.type === 'hline') {
+          const y = d.y || 180;
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', '0');
+          line.setAttribute('y1', String(y));
+          line.setAttribute('x2', '2000');
+          line.setAttribute('y2', String(y));
+          line.setAttribute('stroke', d.color || '#10b981');
+          line.setAttribute('stroke-width', '1.5');
+          line.setAttribute('stroke-dasharray', '5,4');
+          svg.appendChild(line);
+
+          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.setAttribute('x', '16');
+          txt.setAttribute('y', String(y - 5));
+          txt.setAttribute('fill', d.color || '#10b981');
+          txt.setAttribute('font-size', '10');
+          txt.textContent = `${d.label || 'H-Line'} (${d.price || ''})`;
+          svg.appendChild(txt);
+        } else if (d.type === 'trendline' || d.type === 'ruler') {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(d.x1));
+          line.setAttribute('y1', String(d.y1));
+          line.setAttribute('x2', String(d.x2));
+          line.setAttribute('y2', String(d.y2));
+          line.setAttribute('stroke', d.color || '#3b82f6');
+          line.setAttribute('stroke-width', '2');
+          svg.appendChild(line);
+
+          if (d.type === 'ruler') {
+            const pct = (((d.y1 - d.y2) / Math.max(1, d.y1)) * 8.5).toFixed(2);
+            const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            txt.setAttribute('x', String((d.x1 + d.x2) / 2));
+            txt.setAttribute('y', String((d.y1 + d.y2) / 2 - 6));
+            txt.setAttribute('fill', '#fbbf24');
+            txt.setAttribute('font-size', '11');
+            txt.setAttribute('font-weight', 'bold');
+            txt.textContent = `${pct >= 0 ? '+' : ''}${pct}%`;
+            svg.appendChild(txt);
+          }
+        } else if (d.type === 'rect' || d.type === 'fib') {
+          const x = Math.min(d.x1, d.x2);
+          const y = Math.min(d.y1, d.y2);
+          const w = Math.max(12, Math.abs(d.x2 - d.x1));
+          const h = Math.max(12, Math.abs(d.y2 - d.y1));
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', String(x));
+          rect.setAttribute('y', String(y));
+          rect.setAttribute('width', String(w));
+          rect.setAttribute('height', String(h));
+          rect.setAttribute('stroke', d.color || '#3b82f6');
+          rect.setAttribute('fill', d.type === 'fib' ? 'rgba(245, 158, 11, 0.10)' : 'rgba(59, 130, 246, 0.12)');
+          svg.appendChild(rect);
+        } else if (d.type === 'text') {
+          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.setAttribute('x', String(d.x1));
+          txt.setAttribute('y', String(d.y1));
+          txt.setAttribute('fill', d.color || '#facc15');
+          txt.setAttribute('font-size', '12');
+          txt.setAttribute('font-weight', 'bold');
+          txt.textContent = d.label || 'APEX Memo';
+          svg.appendChild(txt);
+        }
+      });
+      renderObjectsTree();
+    }
+
+    function renderObjectsTree() {
+      const container = document.getElementById('objectsTreeContainer');
+      if (!container) return;
+      if (!state.drawings.length) {
+        container.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">작도된 객체가 없습니다. 좌측 툴바에서 도구를 선택해 차트를 클릭하세요.</div>';
+        return;
+      }
+      container.innerHTML = state.drawings.map(d => `
+        <div class="flex items-center justify-between p-2 rounded bg-[#0b0e14] border border-[#1e2636] text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full" style="background:${d.color || '#3b82f6'}"></span>
+            <span class="font-medium text-slate-200">${d.type.toUpperCase()}</span>
+            <span class="text-[10px] text-slate-400">${d.symbol || state.activeSymbol}</span>
+          </div>
+          <button type="button" data-del-obj="${d.id}" class="text-rose-400 hover:text-rose-300 text-[11px] px-1.5 py-0.5 rounded bg-rose-500/10">삭제</button>
+        </div>
+      `).join('');
+    }
+
+    // =========================================================================
+    // RIGHT SIDEBAR RENDERERS (Watchlist, Screener, Book, Masters, Alerts, News, Positions, Events)
+    // =========================================================================
+    function renderWatchlist() {
+      const container = document.getElementById('watchlistContainer');
+      if (!container) return;
+      const q = state.watchSearch.trim().toLowerCase();
+      const filtered = state.symbols.filter(s => {
+        if (state.watchCategory === 'fav' && !s.fav) return false;
+        if (state.watchCategory === 'index' && s.cat !== 'index') return false;
+        if (q && !s.symbol.toLowerCase().includes(q) && !s.short.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      container.innerHTML = filtered.map(s => {
+        const isSelected = s.symbol === state.activeSymbol;
+        const decimals = s.basePrice < 5 ? 4 : 2;
+        const up = s.change >= 0;
+        return `
+          <div data-sym="${s.symbol}" class="watch-row grid grid-cols-12 items-center px-3 py-2 text-xs cursor-pointer hover:bg-[#171e2b] transition ${isSelected ? 'bg-[#171e2b] border-l-2 border-blue-500' : ''}">
+            <div class="col-span-5 flex items-center gap-1.5">
+              <button type="button" data-fav="${s.symbol}" class="text-xs ${s.fav ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'}">★</button>
+              <div>
+                <div class="font-bold text-slate-100 leading-tight">${s.short} <span class="text-[10px] font-normal text-slate-400">PERP</span></div>
+                <div class="text-[10px] text-slate-500 font-mono-num">Vol ${s.vol}</div>
+              </div>
+            </div>
+            <div class="col-span-4 text-right font-mono-num font-semibold ${up ? 'text-emerald-400' : 'text-rose-400'}">
+              ${s.basePrice.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+            </div>
+            <div class="col-span-3 text-right">
+              <span class="inline-block font-mono-num text-[11px] px-1.5 py-0.5 rounded ${up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}">
+                ${up ? '+' : ''}${s.change.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderScreener() {
+      const container = document.getElementById('screenerListContainer');
+      if (!container) return;
+      const items = state.symbols.map((s, idx) => {
+        const rsi = Math.min(82, Math.max(22, Math.round(52 + s.change * 4.2 + (idx % 3) * 3)));
+        const signal = s.change >= 1.5 ? 'APEX LONG ▲' : (s.change < -0.5 ? 'APEX SHORT ▼' : 'CLOUD NEUTRAL');
+        return { ...s, rsi, signal };
+      }).filter(item => {
+        if (state.screenerFilter === 'bull') return item.signal.includes('LONG');
+        if (state.screenerFilter === 'bear') return item.signal.includes('SHORT');
+        if (state.screenerFilter === 'rsi') return item.rsi >= 68 || item.rsi <= 35;
+        return true;
+      });
+
+      container.innerHTML = items.map(item => `
+        <div data-sym="${item.symbol}" class="watch-row p-2 rounded bg-[#0b0e14] border border-[#1e2636] hover:border-blue-500/50 cursor-pointer flex items-center justify-between text-xs">
+          <div>
+            <div class="font-bold text-slate-200">${item.label}</div>
+            <div class="text-[10px] text-slate-400 font-mono-num">RSI(14): <span class="${item.rsi > 65 ? 'text-amber-300' : 'text-slate-300'}">${item.rsi}</span></div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] font-bold px-1.5 py-0.5 rounded ${item.signal.includes('LONG') ? 'bg-emerald-500/15 text-emerald-400' : item.signal.includes('SHORT') ? 'bg-rose-500/15 text-rose-400' : 'bg-slate-800 text-slate-400'}">${item.signal}</div>
+            <div class="font-mono-num text-[11px] text-slate-300 mt-0.5">${item.basePrice}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderOrderbook() {
+      const asksEl = document.getElementById('orderbookAsks');
+      const bidsEl = document.getElementById('orderbookBids');
+      const midEl = document.getElementById('obMidPrice');
+      if (!asksEl || !bidsEl) return;
+      const symObj = state.symbols.find(s => s.symbol === state.activeSymbol) || DEFAULT_SYMBOLS[0];
+      const base = symObj.basePrice;
+      const step = base > 1000 ? 1.5 : (base > 10 ? 0.05 : 0.001);
+      const decimals = base < 5 ? 4 : 2;
+
+      let asksHtml = '';
+      for (let i = 8; i >= 1; i--) {
+        const p = (base + i * step).toFixed(decimals);
+        const sz = (Math.random() * 3.8 + 0.4).toFixed(2);
+        const tot = (parseFloat(p) * parseFloat(sz)).toFixed(0);
+        const w = Math.min(95, Math.round(parseFloat(sz) * 22));
+        asksHtml += `
+          <div class="relative flex justify-between px-2 py-0.5">
+            <div class="absolute right-0 top-0 bottom-0 bg-rose-500/15" style="width:${w}%"></div>
+            <span class="relative text-rose-400">${p}</span>
+            <span class="relative text-slate-300">${sz}</span>
+            <span class="relative text-slate-500">${Number(tot).toLocaleString()}</span>
+          </div>`;
+      }
+      asksEl.innerHTML = asksHtml;
+
+      if (midEl) midEl.textContent = base.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+      let bidsHtml = '';
+      for (let i = 1; i <= 8; i++) {
+        const p = (base - i * step).toFixed(decimals);
+        const sz = (Math.random() * 4.2 + 0.5).toFixed(2);
+        const tot = (parseFloat(p) * parseFloat(sz)).toFixed(0);
+        const w = Math.min(95, Math.round(parseFloat(sz) * 22));
+        bidsHtml += `
+          <div class="relative flex justify-between px-2 py-0.5">
+            <div class="absolute right-0 top-0 bottom-0 bg-emerald-500/15" style="width:${w}%"></div>
+            <span class="relative text-emerald-400">${p}</span>
+            <span class="relative text-slate-300">${sz}</span>
+            <span class="relative text-slate-500">${Number(tot).toLocaleString()}</span>
+          </div>`;
+      }
+      bidsEl.innerHTML = bidsHtml;
+    }
+
+    function renderMastersAndStaticPanels() {
+      const mastersEl = document.getElementById('mastersListContainer');
+      if (mastersEl) {
+        const masters = [
+          { name: 'Zetro_Alpha_01', pair: 'BTCUSDT', side: 'LONG 25x', pnl: '+148.4%', entry: '91,420' },
+          { name: 'N1_Quant_Whale', pair: 'SOLUSDT', side: 'LONG 15x', pnl: '+84.2%', entry: '178.50' },
+          { name: 'Apex_Macro_Fund', pair: 'HYPEUSDT', side: 'LONG 10x', pnl: '+62.9%', entry: '24.10' },
+          { name: 'Seoul_Perp_Desk', pair: 'ETHUSDT', side: 'SHORT 20x', pnl: '+31.5%', entry: '3,195.0' }
+        ];
+        mastersEl.innerHTML = masters.map(m => `
+          <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
+            <div>
+              <div class="font-bold text-slate-200">${m.name}</div>
+              <div class="text-[10px] text-slate-400 font-mono-num">${m.pair} · Entry ${m.entry}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-emerald-400 font-mono-num font-bold">${m.pnl}</div>
+              <div class="text-[10px] ${m.side.includes('LONG') ? 'text-emerald-300' : 'text-rose-300'}">${m.side}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const newsEl = document.getElementById('newsItemsList');
+      if (newsEl) {
+        const news = [
+          { tag: 'BULLISH', time: '12분 전', title: '비트코인 무기한 선물 미결제약정(OI) 주요 저항선 돌파 시도, 기관 매수세 유입' },
+          { tag: 'TECH', time: '38분 전', title: 'Zetro System × N1 Terminal: APEX 4-Range Cloud 5분봉 및 10분봉 동시 골든크로스 포착' },
+          { tag: 'MACRO', time: '1시간 전', title: '미국 기술주 및 반도체 레버리지(SOXL) 강세 전환에 따른 알트코인 동조화 흐름 확대' },
+          { tag: 'ON-CHAIN', time: '2시간 전', title: 'SOL·HYPE 탈중앙 무기한 선물 거래량 전일 대비 +34% 급증' }
+        ];
+        newsEl.innerHTML = news.map(n => `
+          <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-1">
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold">${n.tag}</span>
+              <span class="text-slate-500">${n.time}</span>
+            </div>
+            <div class="text-xs text-slate-200 leading-snug">${n.title}</div>
+          </div>
+        `).join('');
+      }
+
+      const eventsEl = document.getElementById('eventsListContainer');
+      if (eventsEl) {
+        const events = [
+          { date: '오늘 21:30 KST', title: '미국 신규 실업수당 청구건수 발표', impact: 'HIGH' },
+          { date: '내일 00:00 KST', title: '주요 무기한 선물 펀딩비 정산 및 주간 옵션 만기', impact: 'MED' },
+          { date: 'D-3', title: '솔라나(SOL) 메인넷 밸리데이터 패치 및 유동성 이벤트', impact: 'MED' }
+        ];
+        eventsEl.innerHTML = events.map(ev => `
+          <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
+            <div>
+              <div class="text-[10px] text-blue-400 font-mono-num">${ev.date}</div>
+              <div class="font-medium text-slate-200 mt-0.5">${ev.title}</div>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${ev.impact === 'HIGH' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-300'}">${ev.impact}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderAlertsList() {
+      const container = document.getElementById('alertsListContainer');
+      const badge = document.getElementById('alertCountBadge');
+      if (badge) badge.textContent = `${state.alerts.length} Active`;
+      if (!container) return;
+      container.innerHTML = state.alerts.map(a => `
+        <div class="p-2 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
+          <div>
+            <div class="font-bold text-slate-200">${a.symbol} · <span class="text-blue-400">${a.condition}</span></div>
+            <div class="text-[10px] text-slate-400 font-mono-num">기준값: ${a.target}</div>
+          </div>
+          <button type="button" data-del-alert="${a.id}" class="text-rose-400 hover:text-rose-300 text-[11px] px-1.5 py-0.5 rounded bg-rose-500/10">해제</button>
+        </div>
+      `).join('');
+    }
+
+    function updatePositionCalculator() {
+      const entry = parseFloat(document.getElementById('posEntryInput')?.value || '94250');
+      const margin = parseFloat(document.getElementById('posMarginInput')?.value || '1000');
+      const lev = state.posLeverage;
+      const size = margin * lev;
+      const liq = state.posSide === 'LONG'
+        ? entry * (1 - (1 / lev) + 0.004)
+        : entry * (1 + (1 / lev) - 0.004);
+
+      const sizeEl = document.getElementById('posSizeResult');
+      const liqEl = document.getElementById('posLiqResult');
+      if (sizeEl) sizeEl.textContent = `$${size.toLocaleString()}`;
+      if (liqEl) liqEl.textContent = liq > 0 ? liq.toFixed(entry < 5 ? 4 : 2) : '0.00';
+
+      const listEl = document.getElementById('simPositionsList');
+      if (!listEl) return;
+      const symMap = Object.fromEntries(state.symbols.map(s => [s.symbol, s.basePrice]));
+      listEl.innerHTML = state.simPositions.map(p => {
+        const cur = symMap[p.symbol] || p.entry;
+        const diffPct = ((cur - p.entry) / p.entry) * 100 * p.lev * (p.side === 'LONG' ? 1 : -1);
+        const up = diffPct >= 0;
+        return `
+          <div class="p-2 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
+            <div>
+              <div class="font-bold text-slate-200">${p.symbol} <span class="${p.side === 'LONG' ? 'text-emerald-400' : 'text-rose-400'}">${p.side} ${p.lev}x</span></div>
+              <div class="text-[10px] text-slate-400 font-mono-num">Entry: ${p.entry} · Margin: $${p.margin}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-mono-num font-bold ${up ? 'text-emerald-400' : 'text-rose-400'}">${up ? '+' : ''}${diffPct.toFixed(2)}%</div>
+              <button type="button" data-del-pos="${p.id}" class="text-[10px] text-slate-400 hover:text-rose-400">종료</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderBottomTicker() {
+      const strip = document.getElementById('bottomTickerStrip');
+      if (!strip) return;
+      strip.innerHTML = state.symbols.slice(0, 7).map(s => {
+        const up = s.change >= 0;
+        const dec = s.basePrice < 5 ? 4 : 2;
+        return `
+          <div class="flex items-center gap-1 whitespace-nowrap">
+            <span class="font-bold text-slate-300">${s.short}</span>
+            <span class="${up ? 'text-emerald-400' : 'text-rose-400'}">${s.basePrice.toFixed(dec)}</span>
+            <span class="text-[9px] ${up ? 'text-emerald-500' : 'text-rose-500'}">(${up ? '+' : ''}${s.change.toFixed(2)}%)</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateKstClock() {
+      const el = document.getElementById('kstClockDisplay');
+      if (!el) return;
+      const now = new Date();
+      const kstStr = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Seoul',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(now);
+      el.textContent = `KST ${kstStr}`;
+    }
+
+    // Switch Language (Korean / English)
+    function applyLanguage(lang) {
+      state.lang = lang;
+      const dict = {
+        ko: {
+          singleChart: 'Single chart (단일)',
+          btcSplit: 'Bitcoin split (BTC 분할)',
+          altSplit: 'Altcoin split (알트 4분할)',
+          majorsComp: 'Majors comp (메이저 비교)',
+          support: '가이드',
+          unlimitedMode: '무제한 모드 (로컬 인증됨)'
+        },
+        en: {
+          singleChart: 'Single chart',
+          btcSplit: 'Bitcoin split',
+          altSplit: 'Altcoin split',
+          majorsComp: 'Majors comp',
+          support: 'Support',
+          unlimitedMode: 'UNLIMITED PRO (Local)'
+        }
+      };
+      const t = dict[lang] || dict.ko;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.getAttribute('data-i18n');
+        if (t[k]) el.textContent = t[k];
+      });
+      const lbl = document.getElementById('headerLangLabel');
+      if (lbl) lbl.textContent = lang.toUpperCase();
+    }
+
+    // Switch Right Sidebar Active Tab
+    function switchRightTab(tabName) {
+      state.activeRightTab = tabName;
+      const sidebar = document.getElementById('rightSidebarPanel');
+      if (state.sidebarCollapsed && sidebar) {
+        state.sidebarCollapsed = false;
+        sidebar.classList.remove('hidden');
+      }
+      document.querySelectorAll('.rail-tab-btn').forEach(btn => {
+        if (btn.dataset.rtab === tabName) {
+          btn.classList.add('rail-btn-active');
+        } else {
+          btn.classList.remove('rail-btn-active');
+        }
+      });
+      document.querySelectorAll('.right-panel-view').forEach(view => view.classList.add('hidden'));
+      const target = document.getElementById(`panel${tabName}`);
+      if (target) target.classList.remove('hidden');
+
+      const titleMap = {
+        Watch: 'Watchlist · 관심종목',
+        Indicators: 'ATH Indicators · 보조지표',
+        Screener: 'Screener · 실시간 조건검색',
+        Book: 'Order Book · 실시간 호가창',
+        Masters: 'Masters · 트레이더 포지션',
+        Alerts: 'Alert Center · N1 봉 마감 알람',
+        News: 'Market News · 실시간 속보',
+        Positions: 'Positions · 선물 청산가 계산기',
+        Events: 'Events · 주요 경제 일정',
+        Objects: 'Objects · 드로잉 레이어 관리',
+        Scripts: 'Scripts · 수식 스튜디오 & 백업'
+      };
+      const titleEl = document.getElementById('rightPanelTitle');
+      if (titleEl) titleEl.textContent = titleMap[tabName] || tabName;
+      setTimeout(resizeAllCharts, 50);
+    }
+
+    // =========================================================================
+    // EVENT WIRING & INITIALIZATION
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedState();
+      if (window.lucide) window.lucide.createIcons();
+
+      // Initial renders
+      renderWatchlist();
+      renderScreener();
+      renderOrderbook();
+      renderMastersAndStaticPanels();
+      renderAlertsList();
+      updatePositionCalculator();
+      renderBottomTicker();
+      updateKstClock();
+      applyLayoutPreset('single');
+      renderDrawingsOverlay();
+
+      // Layout Preset Tabs
+      document.querySelectorAll('.preset-tab').forEach(btn => {
+        btn.addEventListener('click', () => applyLayoutPreset(btn.dataset.preset));
+      });
+
+      // Symbol Dropdown
+      const symSelect = document.getElementById('symbolSelect');
+      if (symSelect) {
+        symSelect.value = state.activeSymbol;
+        symSelect.addEventListener('change', e => {
+          state.activeSymbol = e.target.value;
+          populateChartPane(0, state.activeSymbol, true);
+          renderWatchlist();
+          renderOrderbook();
+          renderDrawingsOverlay();
+          saveWorkspaceState(true);
+        });
+      }
+
+      // Timeframe Buttons
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.timeframe = btn.dataset.tf;
+          document.querySelectorAll('.tf-btn').forEach(b => {
+            b.classList.toggle('tf-btn-active', b === btn);
+            b.classList.toggle('text-slate-400', b !== btn);
+          });
+          populateChartPane(0, state.activeSymbol, true);
+          if (state.splitMode > 1) {
+            for (let i = 1; i < state.splitMode; i++) {
+              if (chartInstances[i]) populateChartPane(i, chartInstances[i].symbolCode, false);
+            }
+          }
+          saveWorkspaceState(true);
+        });
+      });
+
+      // ATH Indicators button -> opens Indicators right tab
+      document.getElementById('btnToggleAthModal')?.addEventListener('click', () => switchRightTab('Indicators'));
+
+      // Quick Indicator pills
+      document.getElementById('btnQuickApex')?.addEventListener('click', () => {
+        state.indicators.apexCloud = !state.indicators.apexCloud;
+        const chk = document.getElementById('chkIndApex');
+        if (chk) chk.checked = state.indicators.apexCloud;
+        document.getElementById('badgeApexCloud').textContent = `APEX 4-Range Cloud: ${state.indicators.apexCloud ? 'ON' : 'OFF'}`;
+        populateChartPane(0, state.activeSymbol, true);
+      });
+
+      document.getElementById('btnQuickAthLines')?.addEventListener('click', () => {
+        state.indicators.athLines = !state.indicators.athLines;
+        const chk = document.getElementById('chkIndAth');
+        if (chk) chk.checked = state.indicators.athLines;
+        document.getElementById('badgeAthLines').textContent = `ATH/ATL Lines: ${state.indicators.athLines ? 'ON' : 'OFF'}`;
+        populateChartPane(0, state.activeSymbol, true);
+      });
+
+      // Checkboxes in Indicators Panel
+      ['chkIndApex', 'chkIndEma', 'chkIndAth', 'chkIndVp'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => {
+          state.indicators.apexCloud = document.getElementById('chkIndApex').checked;
+          state.indicators.emaCloud = document.getElementById('chkIndEma').checked;
+          state.indicators.athLines = document.getElementById('chkIndAth').checked;
+          state.indicators.volumeProfile = document.getElementById('chkIndVp').checked;
+          const cnt = [state.indicators.apexCloud, state.indicators.emaCloud, state.indicators.athLines, state.indicators.volumeProfile].filter(Boolean).length;
+          document.getElementById('activeIndCount').textContent = String(cnt);
+          document.getElementById('badgeApexCloud').textContent = `APEX 4-Range Cloud: ${state.indicators.apexCloud ? 'ON' : 'OFF'}`;
+          document.getElementById('badgeEmaCloud').textContent = `EMA 20/50 Cloud: ${state.indicators.emaCloud ? 'ON' : 'OFF'}`;
+          document.getElementById('badgeAthLines').textContent = `ATH/ATL Lines: ${state.indicators.athLines ? 'ON' : 'OFF'}`;
+          populateChartPane(0, state.activeSymbol, true);
+          saveWorkspaceState(true);
+        });
+      });
+
+      document.getElementById('rngApexMult')?.addEventListener('input', e => {
+        state.indicators.apexMultiplier = parseFloat(e.target.value);
+        document.getElementById('apexMultValue').textContent = `${state.indicators.apexMultiplier.toFixed(1)}x`;
+        populateChartPane(0, state.activeSymbol, true);
+      });
+
+      // Engine Switcher (N1 Canvas vs TradingView Widget)
+      document.getElementById('btnEngineN1')?.addEventListener('click', () => {
+        state.engine = 'n1';
+        document.getElementById('tvWidgetContainer')?.classList.add('hidden');
+        document.getElementById('btnEngineN1').className = 'px-2 py-0.5 text-[11px] font-medium rounded bg-blue-600 text-white transition';
+        document.getElementById('btnEngineTV').className = 'px-2 py-0.5 text-[11px] font-medium rounded text-slate-400 hover:text-white transition';
+      });
+
+      document.getElementById('btnEngineTV')?.addEventListener('click', () => {
+        state.engine = 'tv';
+        const tvBox = document.getElementById('tvWidgetContainer');
+        if (tvBox) {
+          tvBox.classList.remove('hidden');
+          const cleanSym = state.activeSymbol.replace('.P', '');
+          tvBox.innerHTML = `<iframe class="w-full h-full border-0" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE:${cleanSym}&interval=5&theme=dark&style=1&timezone=Asia%2FSeoul&withdateranges=1&hide_side_toolbar=0&allow_symbol_change=1"></iframe>`;
+        }
+        document.getElementById('btnEngineTV').className = 'px-2 py-0.5 text-[11px] font-medium rounded bg-blue-600 text-white transition';
+        document.getElementById('btnEngineN1').className = 'px-2 py-0.5 text-[11px] font-medium rounded text-slate-400 hover:text-white transition';
+      });
+
+      // Save Layout, Share Chart, Cycle Split Screen
+      document.getElementById('btnSaveLayout')?.addEventListener('click', () => saveWorkspaceState(false));
+
+      document.getElementById('btnShareChart')?.addEventListener('click', () => {
+        const shareText = `Zetro System x N1 Terminal | ${state.activeSymbol} (${state.timeframe}) | Price: ${document.getElementById('activePriceDisplay')?.textContent}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareText).catch(() => {});
+        }
+        showToast('차트 스냅샷 공유 링크가 클립보드에 복사되었습니다.');
+      });
+
+      document.getElementById('btnCycleSplit')?.addEventListener('click', () => {
+        const order = ['single', 'btc_split', 'alt_split', 'majors_comp'];
+        const next = order[(order.indexOf(state.preset) + 1) % order.length];
+        applyLayoutPreset(next);
+      });
+
+      // Left Drawing Toolbar
+      document.querySelectorAll('.draw-tool-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.drawTool = btn.dataset.draw;
+          state.pendingDrawPoint = null;
+          document.querySelectorAll('.draw-tool-btn').forEach(b => b.classList.toggle('tool-btn-active', b === btn));
+          const svg = document.getElementById('drawingSvgOverlay');
+          if (svg) svg.style.pointerEvents = state.drawTool === 'cursor' ? 'none' : 'auto';
+          const hint = document.getElementById('drawStatusHint');
+          if (hint) hint.textContent = state.drawTool === 'cursor' ? '커서 모드' : `작도 모드: ${state.drawTool.toUpperCase()} (차트 클릭)`;
+        });
+      });
+
+      document.getElementById('drawColorPicker')?.addEventListener('input', e => {
+        state.drawColor = e.target.value;
+      });
+
+      document.getElementById('btnZoomReset')?.addEventListener('click', () => {
+        chartInstances.forEach(inst => inst && inst.chart.timeScale().fitContent());
+        showToast('차트 배율이 초기화되었습니다.');
+      });
+
+      document.getElementById('btnClearDrawings')?.addEventListener('click', () => {
+        state.drawings = [];
+        renderDrawingsOverlay();
+        saveWorkspaceState(true);
+        showToast('모든 작도 객체가 삭제되었습니다.');
+      });
+
+      // SVG Drawing Click Handler
+      document.getElementById('drawingSvgOverlay')?.addEventListener('click', e => {
+        if (state.drawTool === 'cursor') return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = Math.round(e.clientX - rect.left);
+        const y = Math.round(e.clientY - rect.top);
+
+        if (state.drawTool === 'hline') {
+          const symObj = state.symbols.find(s => s.symbol === state.activeSymbol) || DEFAULT_SYMBOLS[0];
+          state.drawings.push({
+            id: 'd_' + Date.now(),
+            type: 'hline',
+            symbol: state.activeSymbol,
+            y,
+            price: symObj.basePrice,
+            color: state.drawColor,
+            label: 'Support/Resist'
+          });
+          renderDrawingsOverlay();
+          saveWorkspaceState(true);
+        } else if (state.drawTool === 'text') {
+          state.drawings.push({
+            id: 'd_' + Date.now(),
+            type: 'text',
+            symbol: state.activeSymbol,
+            x1: x,
+            y1: y,
+            color: state.drawColor,
+            label: `APEX Note (${state.activeSymbol})`
+          });
+          renderDrawingsOverlay();
+          saveWorkspaceState(true);
+        } else {
+          if (!state.pendingDrawPoint) {
+            state.pendingDrawPoint = { x, y };
+            showToast('두 번째 지점을 클릭하면 작도가 완료됩니다.');
+          } else {
+            state.drawings.push({
+              id: 'd_' + Date.now(),
+              type: state.drawTool,
+              symbol: state.activeSymbol,
+              x1: state.pendingDrawPoint.x,
+              y1: state.pendingDrawPoint.y,
+              x2: x,
+              y2: y,
+              color: state.drawColor
+            });
+            state.pendingDrawPoint = null;
+            renderDrawingsOverlay();
+            saveWorkspaceState(true);
+          }
+        }
+      });
+
+      // CSV Download
+      document.getElementById('btnDownloadCsv')?.addEventListener('click', () => {
+        const candles = state.candlesBySymbol[state.activeSymbol] || [];
+        const header = 'time,open,high,low,close,volume\n';
+        const body = candles.map(c => `${c.time},${c.open},${c.high},${c.low},${c.close},${c.volume}`).join('\n');
+        const blob = new Blob([header + body], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${state.activeSymbol}_${state.timeframe}_zetro.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`${state.activeSymbol} 캔들 데이터 CSV 다운로드 완료`);
+      });
+
+      // Right Icon Rail Navigation
+      document.querySelectorAll('.rail-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchRightTab(btn.dataset.rtab));
+      });
+
+      document.getElementById('btnCollapseSidebar')?.addEventListener('click', () => {
+        const sb = document.getElementById('rightSidebarPanel');
+        if (!sb) return;
+        state.sidebarCollapsed = !state.sidebarCollapsed;
+        sb.classList.toggle('hidden', state.sidebarCollapsed);
+        setTimeout(resizeAllCharts, 50);
+      });
+
+      // Watchlist Search & Category Filtering
+      document.getElementById('watchSearchInput')?.addEventListener('input', e => {
+        state.watchSearch = e.target.value;
+        renderWatchlist();
+      });
+
+      document.getElementById('btnAddCustomSymbol')?.addEventListener('click', () => {
+        const input = document.getElementById('watchSearchInput');
+        const raw = (input?.value || '').trim().toUpperCase();
+        if (!raw) {
+          showToast('검색창에 추가할 코인 심볼(예: SUI, PEPE)을 입력한 뒤 + 버튼을 눌러주세요.');
+          return;
+        }
+        const clean = raw.endsWith('USDT') ? raw : `${raw}USDT`;
+        if (!state.symbols.some(s => s.symbol === clean)) {
+          const short = clean.replace('USDT', '');
+          state.symbols.unshift({
+            symbol: clean,
+            label: `${short} USDT perp`,
+            short,
+            basePrice: 12.50,
+            change: 3.25,
+            pinned: true,
+            fav: true,
+            cat: 'index',
+            vol: '410M'
+          });
+          const sel = document.getElementById('symbolSelect');
+          if (sel) {
+            const opt = document.createElement('option');
+            opt.value = clean;
+            opt.textContent = `${short} USDT perp`;
+            sel.appendChild(opt);
+          }
+        }
+        if (input) input.value = '';
+        state.watchSearch = '';
+        renderWatchlist();
+        showToast(`${clean} 종목이 관심종목에 추가되었습니다.`);
+      });
+
+      document.querySelectorAll('.watch-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.watchCategory = btn.dataset.wcat;
+          document.querySelectorAll('.watch-cat-btn').forEach(b => {
+            const active = b === btn;
+            b.className = `watch-cat-btn flex-1 py-1.5 text-center ${active ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400 hover:text-slate-200'}`;
+          });
+          renderWatchlist();
+        });
+      });
+
+      // Event Delegation for Watchlist, Screener, Alerts, Positions, Objects
+      document.getElementById('rightSidebarPanel')?.addEventListener('click', e => {
+        const favBtn = e.target.closest('[data-fav]');
+        if (favBtn) {
+          e.stopPropagation();
+          const sym = favBtn.getAttribute('data-fav');
+          const found = state.symbols.find(s => s.symbol === sym);
+          if (found) found.fav = !found.fav;
+          renderWatchlist();
+          return;
+        }
+        const row = e.target.closest('.watch-row');
+        if (row && row.dataset.sym) {
+          state.activeSymbol = row.dataset.sym;
+          const sel = document.getElementById('symbolSelect');
+          if (sel) sel.value = state.activeSymbol;
+          populateChartPane(0, state.activeSymbol, true);
+          renderWatchlist();
+          renderOrderbook();
+          renderDrawingsOverlay();
+          return;
+        }
+        const delAlert = e.target.closest('[data-del-alert]');
+        if (delAlert) {
+          const id = delAlert.getAttribute('data-del-alert');
+          state.alerts = state.alerts.filter(a => a.id !== id);
+          renderAlertsList();
+          saveWorkspaceState(true);
+          return;
+        }
+        const delPos = e.target.closest('[data-del-pos]');
+        if (delPos) {
+          const id = delPos.getAttribute('data-del-pos');
+          state.simPositions = state.simPositions.filter(p => p.id !== id);
+          updatePositionCalculator();
+          saveWorkspaceState(true);
+          return;
+        }
+        const delObj = e.target.closest('[data-del-obj]');
+        if (delObj) {
+          const id = delObj.getAttribute('data-del-obj');
+          state.drawings = state.drawings.filter(d => d.id !== id);
+          renderDrawingsOverlay();
+          saveWorkspaceState(true);
+        }
+      });
+
+      // Screener Filter Buttons
+      document.querySelectorAll('.sfilter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.screenerFilter = btn.dataset.sfilter;
+          renderScreener();
+        });
+      });
+
+      // Alerts Creation & Sound Test
+      document.getElementById('btnTestAlertSound')?.addEventListener('click', () => {
+        playAlertSound();
+        showToast('N1 알람 사운드 및 브라우저 알림 테스트 완료!', 'alert');
+      });
+
+      document.getElementById('btnCreateAlert')?.addEventListener('click', () => {
+        const cond = document.getElementById('alertConditionSelect')?.value || 'APEX_SIGNAL';
+        const targetVal = document.getElementById('alertTargetPriceInput')?.value.trim() || '봉 마감 자동';
+        state.alerts.unshift({
+          id: 'a_' + Date.now(),
+          symbol: state.activeSymbol,
+          condition: cond,
+          target: targetVal,
+          active: true
+        });
+        renderAlertsList();
+        saveWorkspaceState(true);
+        playAlertSound();
+        showToast(`${state.activeSymbol} 새 알람이 등록되었습니다.`);
+      });
+
+      // Positions Calculator Controls
+      document.getElementById('btnPosLong')?.addEventListener('click', () => {
+        state.posSide = 'LONG';
+        document.getElementById('btnPosLong').className = 'flex-1 py-1.5 text-xs font-bold rounded bg-emerald-600 text-white';
+        document.getElementById('btnPosShort').className = 'flex-1 py-1.5 text-xs font-bold rounded bg-[#171e2b] text-slate-400';
+        updatePositionCalculator();
+      });
+
+      document.getElementById('btnPosShort')?.addEventListener('click', () => {
+        state.posSide = 'SHORT';
+        document.getElementById('btnPosShort').className = 'flex-1 py-1.5 text-xs font-bold rounded bg-rose-600 text-white';
+        document.getElementById('btnPosLong').className = 'flex-1 py-1.5 text-xs font-bold rounded bg-[#171e2b] text-slate-400';
+        updatePositionCalculator();
+      });
+
+      document.getElementById('rngPosLev')?.addEventListener('input', e => {
+        state.posLeverage = parseInt(e.target.value, 10) || 20;
+        document.getElementById('posLevLabel').textContent = `${state.posLeverage}x`;
+        updatePositionCalculator();
+      });
+
+      ['posEntryInput', 'posMarginInput'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updatePositionCalculator);
+      });
+
+      document.getElementById('btnOpenSimPosition')?.addEventListener('click', () => {
+        const entry = parseFloat(document.getElementById('posEntryInput')?.value || '94250');
+        const margin = parseFloat(document.getElementById('posMarginInput')?.value || '1000');
+        state.simPositions.unshift({
+          id: 'p_' + Date.now(),
+          symbol: state.activeSymbol,
+          side: state.posSide,
+          lev: state.posLeverage,
+          entry,
+          margin
+        });
+        updatePositionCalculator();
+        saveWorkspaceState(true);
+        showToast(`${state.activeSymbol} ${state.posSide} ${state.posLeverage}x 모의 포지션이 추가되었습니다.`);
+      });
+
+      // Scripts & Backup Controls
+      document.getElementById('btnApplyCustomScript')?.addEventListener('click', () => {
+        populateChartPane(0, state.activeSymbol, true);
+        showToast('커스텀 지표 수식이 컴파일되어 차트에 반영되었습니다.');
+      });
+
+      document.getElementById('btnExportJson')?.addEventListener('click', () => {
+        const jsonStr = JSON.stringify({
+          symbols: state.symbols,
+          indicators: state.indicators,
+          drawings: state.drawings,
+          alerts: state.alerts
+        }, null, 2);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(jsonStr).catch(() => {});
+        }
+        showToast('워크스페이스 JSON 백업 데이터가 클립보드에 복사되었습니다.');
+      });
+
+      document.getElementById('btnResetWorkspace')?.addEventListener('click', () => {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+        state.drawings = [];
+        renderDrawingsOverlay();
+        showToast('로컬 워크스페이스 데이터가 초기화되었습니다.');
+      });
+
+      // Modals & Language Toggles
+      document.getElementById('btnSupportModal')?.addEventListener('click', () => {
+        document.getElementById('supportModal')?.classList.remove('hidden');
+      });
+      document.getElementById('btnCloseSupportModal')?.addEventListener('click', () => {
+        document.getElementById('supportModal')?.classList.add('hidden');
+      });
+      document.getElementById('btnLicenseStatus')?.addEventListener('click', () => {
+        showToast('인증 우회 없이 로컬 영구 라이선스로 동작 중입니다 (기간 제한 없음).');
+      });
+
+      document.getElementById('btnHeaderLang')?.addEventListener('click', () => {
+        applyLanguage(state.lang === 'ko' ? 'en' : 'ko');
+      });
+      document.getElementById('btnFooterKo')?.addEventListener('click', () => applyLanguage('ko'));
+      document.getElementById('btnFooterEn')?.addEventListener('click', () => applyLanguage('en'));
+
+      window.addEventListener('resize', resizeAllCharts);
+
+      // Real-time Tick Simulation & Clock Loop
+      setInterval(updateKstClock, 1000);
+      setInterval(() => {
+        state.symbols.forEach(s => {
+          const deltaPct = (Math.random() - 0.492) * 0.0018;
+          s.basePrice = Number(Math.max(0.0001, s.basePrice * (1 + deltaPct)).toFixed(s.basePrice < 5 ? 4 : 2));
+          s.change = Number((s.change + deltaPct * 45).toFixed(2));
+        });
+
+        // Update current candle in primary chart
+        const inst0 = chartInstances[0];
+        const candles = state.candlesBySymbol[state.activeSymbol];
+        const activeSymObj = state.symbols.find(s => s.symbol === state.activeSymbol);
+        if (inst0 && candles && candles.length && activeSymObj) {
+          const last = candles[candles.length - 1];
+          last.close = activeSymObj.basePrice;
+          if (last.close > last.high) last.high = last.close;
+          if (last.close < last.low) last.low = last.close;
+          last.volume = Math.round(last.volume + Math.random() * 12);
+          inst0.candleSeries.update(last);
+          updateTopSymbolHeader(state.activeSymbol, last);
+        }
+
+        renderWatchlist();
+        if (state.activeRightTab === 'Book') renderOrderbook();
+        if (state.activeRightTab === 'Positions') updatePositionCalculator();
+        renderBottomTicker();
+      }, 1800);
+    });
+  </script>
+</body>
+</html>
