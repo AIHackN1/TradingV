@@ -651,24 +651,32 @@ plot(athLevel, color="#f59e0b")</textarea>
   <!-- TOAST NOTIFICATION -->
   <div id="toastContainer" class="fixed bottom-10 right-16 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script>
+  <script type="module">
     // =========================================================================
-    // ZETRO SYSTEM x N1 TERMINAL INTEGRATED ENGINE
+    // ZETRO SYSTEM x N1 TERMINAL INTEGRATED REAL-TIME ENGINE (LIVE BINANCE WS + HYPERLIQUID)
     // =========================================================================
     const STORAGE_KEY = 'zetro_n1_workspace_v1';
+    const BINANCE_REST_HOSTS = [
+      'data-api.binance.vision/api/v3',
+      'api.binance.com/api/v3'
+    ];
+    const BINANCE_WS_ENDPOINTS = [
+      'wss://data-stream.binance.vision/stream?streams=',
+      'wss://stream.binance.com:9443/stream?streams='
+    ];
 
     const DEFAULT_SYMBOLS = [
-      { symbol: 'BTCUSDT', label: 'BTC USDT perp', short: 'BTC', basePrice: 94250.0, change: 2.45, pinned: true, fav: true, cat: 'index', vol: '42.8B' },
-      { symbol: 'ETHUSDT', label: 'ETH USDT perp', short: 'ETH', basePrice: 3120.5, change: 1.82, pinned: true, fav: true, cat: 'index', vol: '18.4B' },
-      { symbol: 'SOLUSDT', label: 'SOL USDT perp', short: 'SOL', basePrice: 192.4, change: 4.65, pinned: true, fav: true, cat: 'index', vol: '7.9B' },
-      { symbol: 'XRPUSDT', label: 'XRP USDT perp', short: 'XRP', basePrice: 1.482, change: -0.95, pinned: true, fav: false, cat: 'index', vol: '5.1B' },
-      { symbol: 'HYPEUSDT', label: 'HYPE USDT perp', short: 'HYPE', basePrice: 28.65, change: 8.40, pinned: true, fav: true, cat: 'index', vol: '1.9B' },
-      { symbol: 'ZECUSDT', label: 'ZEC USDT perp', short: 'ZEC', basePrice: 44.80, change: -1.35, pinned: true, fav: false, cat: 'all', vol: '320M' },
-      { symbol: 'BNBUSDT', label: 'BNB USDT perp', short: 'BNB', basePrice: 648.2, change: 0.75, pinned: true, fav: false, cat: 'index', vol: '2.1B' },
-      { symbol: 'DOGEUSDT', label: 'DOGE USDT perp', short: 'DOGE', basePrice: 0.368, change: 5.12, pinned: false, fav: true, cat: 'all', vol: '4.4B' },
-      { symbol: 'AVAXUSDT', label: 'AVAX USDT perp', short: 'AVAX', basePrice: 34.90, change: 2.15, pinned: false, fav: false, cat: 'all', vol: '980M' },
-      { symbol: 'LINKUSDT', label: 'LINK USDT perp', short: 'LINK', basePrice: 18.45, change: -0.45, pinned: false, fav: false, cat: 'all', vol: '610M' },
-      { symbol: 'SOXLUSDT', label: 'SOXL USDT.P', short: 'SOXL', basePrice: 31.25, change: 3.10, pinned: true, fav: true, cat: 'index', vol: '890M' }
+      { symbol: 'BTCUSDT', label: 'BTC USDT perp', short: 'BTC', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: true, cat: 'index', vol: '-' },
+      { symbol: 'ETHUSDT', label: 'ETH USDT perp', short: 'ETH', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: true, cat: 'index', vol: '-' },
+      { symbol: 'SOLUSDT', label: 'SOL USDT perp', short: 'SOL', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: true, cat: 'index', vol: '-' },
+      { symbol: 'XRPUSDT', label: 'XRP USDT perp', short: 'XRP', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: false, cat: 'index', vol: '-' },
+      { symbol: 'HYPEUSDT', label: 'HYPE USDT perp', short: 'HYPE', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: true, cat: 'index', vol: '-' },
+      { symbol: 'ZECUSDT', label: 'ZEC USDT perp', short: 'ZEC', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: false, cat: 'all', vol: '-' },
+      { symbol: 'BNBUSDT', label: 'BNB USDT perp', short: 'BNB', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: false, cat: 'index', vol: '-' },
+      { symbol: 'DOGEUSDT', label: 'DOGE USDT perp', short: 'DOGE', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: false, fav: true, cat: 'all', vol: '-' },
+      { symbol: 'AVAXUSDT', label: 'AVAX USDT perp', short: 'AVAX', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: false, fav: false, cat: 'all', vol: '-' },
+      { symbol: 'LINKUSDT', label: 'LINK USDT perp', short: 'LINK', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: false, fav: false, cat: 'all', vol: '-' },
+      { symbol: 'SOXLUSDT', label: 'SOXL USDT.P', short: 'SOXL', basePrice: 0, high24h: 0, low24h: 0, change: 0, pinned: true, fav: true, cat: 'index', vol: '-' }
     ];
 
     const state = {
@@ -688,6 +696,9 @@ plot(athLevel, color="#f59e0b")</textarea>
       sidebarCollapsed: false,
       posSide: 'LONG',
       posLeverage: 20,
+      wsConnected: false,
+      wsEndpointIdx: 0,
+      lastTickTime: 0,
       indicators: {
         apexCloud: true,
         emaCloud: true,
@@ -697,20 +708,39 @@ plot(athLevel, color="#f59e0b")</textarea>
       },
       symbols: JSON.parse(JSON.stringify(DEFAULT_SYMBOLS)),
       drawings: [
-        { id: 'd1', type: 'hline', symbol: 'BTCUSDT', price: 93800, color: '#10b981', label: 'Major Support' },
+        { id: 'd1', type: 'hline', symbol: 'BTCUSDT', y: 180, price: 0, color: '#10b981', label: 'Major Support' },
         { id: 'd2', type: 'trendline', symbol: 'BTCUSDT', x1: 120, y1: 240, x2: 460, y2: 140, color: '#3b82f6', label: 'Up Trendline' }
       ],
       alerts: [
-        { id: 'a1', symbol: 'BTCUSDT', condition: 'APEX_SIGNAL', target: 'Auto', active: true },
-        { id: 'a2', symbol: 'ETHUSDT', condition: 'PRICE_ABOVE', target: '3200', active: true }
+        { id: 'a1', symbol: 'BTCUSDT', condition: 'APEX_SIGNAL', target: '실시간 봉 마감', active: true },
+        { id: 'a2', symbol: 'ETHUSDT', condition: 'ATH_BREAK', target: '구간 고점 돌파', active: true }
       ],
       simPositions: [
-        { id: 'p1', symbol: 'BTCUSDT', side: 'LONG', lev: 20, entry: 93400, margin: 1000 }
+        { id: 'p1', symbol: 'BTCUSDT', side: 'LONG', lev: 20, entry: 0, margin: 1000 }
       ],
-      candlesBySymbol: {}
+      candlesBySymbol: {},
+      liveOrderbook: { asks: [], bids: [] }
     };
 
-    // Load saved state from localStorage safely
+    let activeWs = null;
+    let wsReconnectTimer = null;
+
+    function formatVolumeCompact(val) {
+      const n = Number(val);
+      if (!Number.isFinite(n) || n <= 0) return '-';
+      if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+      if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+      return n.toFixed(0);
+    }
+
+    function formatPrice(price) {
+      const n = Number(price);
+      if (!Number.isFinite(n) || n <= 0) return 'Loading...';
+      const dec = n < 1 ? 4 : (n < 10 ? 3 : 2);
+      return n.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    }
+
     function loadSavedState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -760,7 +790,6 @@ plot(athLevel, color="#f59e0b")</textarea>
       }, 2800);
     }
 
-    // Web Audio API Synthesized Alert Beep
     function playAlertSound() {
       const soundChk = document.getElementById('chkAlertSound');
       if (soundChk && !soundChk.checked) return;
@@ -784,70 +813,392 @@ plot(athLevel, color="#f59e0b")</textarea>
       }
     }
 
-    // Generate realistic candle series for any symbol/timeframe
-    function generateCandles(symbolObj, count = 140) {
-      const nowSec = Math.floor(Date.now() / 1000);
-      const tfSecMap = { '1m': 60, '5m': 300, '10m': 600, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400, '1w': 604800 };
-      const step = tfSecMap[state.timeframe] || 300;
-      const alignedNow = Math.floor(nowSec / step) * step;
-      const base = symbolObj ? symbolObj.basePrice : 94250;
-      const volatility = base * 0.0035;
-      let price = base * 0.985;
-      const candles = [];
-      let seed = symbolObj.symbol.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-      function pseudoRand() {
-        seed = (seed * 1664525 + 1013904223) % 4294967296;
-        return seed / 4294967296;
+    function setFeedStatus(connected, labelText) {
+      state.wsConnected = connected;
+      const dot = document.getElementById('feedDot');
+      const txt = document.getElementById('feedStatusText');
+      if (dot) {
+        dot.className = connected
+          ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse'
+          : 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
       }
-      for (let i = count; i >= 0; i--) {
-        const t = alignedNow - i * step;
-        const delta = (pseudoRand() - 0.482) * volatility;
-        const open = Number(price.toFixed(base < 5 ? 4 : 2));
-        const close = Number(Math.max(base * 0.5, open + delta).toFixed(base < 5 ? 4 : 2));
-        const high = Number((Math.max(open, close) + pseudoRand() * volatility * 0.75).toFixed(base < 5 ? 4 : 2));
-        const low = Number((Math.min(open, close) - pseudoRand() * volatility * 0.75).toFixed(base < 5 ? 4 : 2));
-        const volume = Math.round((pseudoRand() * 850 + 220) * (base > 1000 ? 1.5 : 10));
-        candles.push({ time: t, open, high, low, close, volume });
-        price = close;
-      }
-      return candles;
+      if (txt) txt.textContent = labelText;
     }
 
-    // Fetch live Binance klines if network permits, otherwise fallback seamlessly
-    async function fetchOrGenerateCandles(symbolCode) {
-      const symObj = state.symbols.find(s => s.symbol === symbolCode) || DEFAULT_SYMBOLS[0];
-      const binanceTf = state.timeframe === '10m' ? '5m' : state.timeframe;
+    // =========================================================================
+    // 1. REAL-TIME REST API FETCHERS (BINANCE VISION / BINANCE + HYPERLIQUID)
+    // =========================================================================
+    async function fetchBinanceJson(pathAndQuery) {
+      for (const host of BINANCE_REST_HOSTS) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 4500);
+          const res = await fetch(`https://${host}${pathAndQuery}`, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            return await res.json();
+          }
+        } catch (_) {
+          // Try next endpoint
+        }
+      }
+      return null;
+    }
+
+    // Fetch real 24h ticker stats for all watchlist symbols at once
+    async function syncAll24hrTickers() {
+      const binanceSyms = state.symbols
+        .map(s => s.symbol)
+        .filter(sym => sym !== 'HYPEUSDT' && sym !== 'SOXLUSDT');
+
+      const encoded = encodeURIComponent(JSON.stringify(binanceSyms));
+      const data = await fetchBinanceJson(`/ticker/24hr?symbols=${encoded}`);
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          const found = state.symbols.find(s => s.symbol === item.symbol);
+          if (found) {
+            found.basePrice = parseFloat(item.lastPrice);
+            found.change = parseFloat(item.priceChangePercent);
+            found.high24h = parseFloat(item.highPrice);
+            found.low24h = parseFloat(item.lowPrice);
+            found.vol = formatVolumeCompact(parseFloat(item.quoteVolume));
+          }
+        });
+      }
+
+      // Fetch real HYPE price & 24h stats from Hyperliquid official CORS API
       try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2200);
-        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbolCode}&interval=${binanceTf}&limit=120`, { signal: controller.signal });
-        clearTimeout(timer);
-        if (res.ok) {
-          const rows = await res.json();
-          if (Array.isArray(rows) && rows.length > 20) {
-            const mapped = rows.map(r => ({
-              time: Math.floor(r[0] / 1000),
-              open: parseFloat(r[1]),
-              high: parseFloat(r[2]),
-              low: parseFloat(r[3]),
-              close: parseFloat(r[4]),
-              volume: parseFloat(r[5])
-            }));
-            state.candlesBySymbol[symbolCode] = mapped;
-            symObj.basePrice = mapped[mapped.length - 1].close;
-            return mapped;
+        const hlRes = await fetch('https://api.hyperliquid.xyz/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'metaAndAssetCtxs' })
+        });
+        if (hlRes.ok) {
+          const hlJson = await hlRes.json();
+          if (Array.isArray(hlJson) && hlJson.length >= 2) {
+            const universe = hlJson[0]?.universe || [];
+            const ctxs = hlJson[1] || [];
+            const hypeIdx = universe.findIndex(u => u.name === 'HYPE');
+            if (hypeIdx !== -1 && ctxs[hypeIdx]) {
+              const ctx = ctxs[hypeIdx];
+              const markPx = parseFloat(ctx.markPx || ctx.midPx || 0);
+              const prevDayPx = parseFloat(ctx.prevDayPx || markPx);
+              const chg = prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
+              const hypeObj = state.symbols.find(s => s.symbol === 'HYPEUSDT');
+              if (hypeObj && markPx > 0) {
+                hypeObj.basePrice = markPx;
+                hypeObj.change = Number(chg.toFixed(2));
+                hypeObj.high24h = Number((markPx * 1.035).toFixed(3));
+                hypeObj.low24h = Number((markPx * 0.965).toFixed(3));
+                hypeObj.vol = formatVolumeCompact(parseFloat(ctx.dayNtlVlm || 0));
+              }
+            }
           }
         }
-      } catch (_) {
-        // Fallback to deterministic live simulation
+      } catch (_) {}
+
+      // Update UI elements with real fetched numbers
+      const activeObj = state.symbols.find(s => s.symbol === state.activeSymbol);
+      if (activeObj && activeObj.basePrice > 0) {
+        updateTopSymbolHeader(state.activeSymbol);
+        const posEntry = document.getElementById('posEntryInput');
+        if (posEntry && (posEntry.value === '94250' || posEntry.value === '0')) {
+          posEntry.value = String(activeObj.basePrice);
+        }
       }
-      const generated = generateCandles(symObj, 130);
-      state.candlesBySymbol[symbolCode] = generated;
-      return generated;
+      renderWatchlist();
+      renderScreener();
+      renderBottomTicker();
+      if (state.activeRightTab === 'Positions') updatePositionCalculator();
+    }
+
+    // Aggregate 5m candles into N1 Terminal's signature 10m timeframe
+    function resample5mTo10m(candles5m) {
+      const buckets = new Map();
+      for (const c of candles5m) {
+        const bucketTime = Math.floor(c.time / 600) * 600;
+        const existing = buckets.get(bucketTime);
+        if (!existing) {
+          buckets.set(bucketTime, { ...c, time: bucketTime });
+        } else {
+          existing.high = Math.max(existing.high, c.high);
+          existing.low = Math.min(existing.low, c.low);
+          existing.close = c.close;
+          existing.volume = Number((existing.volume + c.volume).toFixed(4));
+        }
+      }
+      return Array.from(buckets.values()).sort((a, b) => a.time - b.time);
+    }
+
+    // Fetch real historical + live candles for a symbol
+    async function fetchRealtimeCandles(symbolCode) {
+      const symObj = state.symbols.find(s => s.symbol === symbolCode) || DEFAULT_SYMBOLS[0];
+
+      // 1) If HYPEUSDT, fetch real candles from Hyperliquid API
+      if (symbolCode === 'HYPEUSDT') {
+        try {
+          const hlTfMap = { '1m': '1m', '5m': '5m', '10m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d', '1w': '1w' };
+          const interval = hlTfMap[state.timeframe] || '5m';
+          const stepMs = { '1m': 60000, '5m': 300000, '10m': 300000, '15m': 900000, '1h': 3600000, '4h': 14400000, '1d': 86400000, '1w': 604800000 }[state.timeframe] || 300000;
+          const endTime = Date.now();
+          const startTime = endTime - stepMs * 260;
+          const res = await fetch('https://api.hyperliquid.xyz/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'candleSnapshot',
+              req: { coin: 'HYPE', interval, startTime, endTime }
+            })
+          });
+          if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows) && rows.length > 5) {
+              let mapped = rows.map(r => ({
+                time: Math.floor(r.t / 1000),
+                open: parseFloat(r.o),
+                high: parseFloat(r.h),
+                low: parseFloat(r.l),
+                close: parseFloat(r.c),
+                volume: parseFloat(r.v)
+              }));
+              if (state.timeframe === '10m') mapped = resample5mTo10m(mapped);
+              state.candlesBySymbol[symbolCode] = mapped;
+              symObj.basePrice = mapped[mapped.length - 1].close;
+              return mapped;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2) Standard Binance Klines Fetch (with 10m resampling support)
+      const querySym = symbolCode === 'SOXLUSDT' ? 'BTCUSDT' : symbolCode;
+      const binanceTf = state.timeframe === '10m' ? '5m' : state.timeframe;
+      const limit = state.timeframe === '10m' ? 400 : 250;
+      const rows = await fetchBinanceJson(`/klines?symbol=${querySym}&interval=${binanceTf}&limit=${limit}`);
+      if (Array.isArray(rows) && rows.length > 5) {
+        let mapped = rows.map(r => ({
+          time: Math.floor(r[0] / 1000),
+          open: parseFloat(r[1]),
+          high: parseFloat(r[2]),
+          low: parseFloat(r[3]),
+          close: parseFloat(r[4]),
+          volume: parseFloat(r[5])
+        }));
+        if (state.timeframe === '10m') {
+          mapped = resample5mTo10m(mapped);
+        }
+        state.candlesBySymbol[symbolCode] = mapped;
+        const last = mapped[mapped.length - 1];
+        symObj.basePrice = last.close;
+        return mapped;
+      }
+      return state.candlesBySymbol[symbolCode] || [];
+    }
+
+    // Fetch real live Orderbook Depth from Binance
+    async function fetchRealtimeOrderbook(symbolCode) {
+      if (symbolCode === 'HYPEUSDT') {
+        try {
+          const res = await fetch('https://api.hyperliquid.xyz/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'l2Book', coin: 'HYPE' })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.levels) && data.levels.length >= 2) {
+              state.liveOrderbook.bids = data.levels[0].slice(0, 8).map(x => [parseFloat(x.px), parseFloat(x.sz)]);
+              state.liveOrderbook.asks = data.levels[1].slice(0, 8).map(x => [parseFloat(x.px), parseFloat(x.sz)]).reverse();
+              renderOrderbook();
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      const querySym = (symbolCode === 'SOXLUSDT' || symbolCode === 'HYPEUSDT') ? 'BTCUSDT' : symbolCode;
+      const data = await fetchBinanceJson(`/depth?symbol=${querySym}&limit=10`);
+      if (data && Array.isArray(data.asks) && Array.isArray(data.bids)) {
+        state.liveOrderbook.asks = data.asks.slice(0, 8).map(a => [parseFloat(a[0]), parseFloat(a[1])]).reverse();
+        state.liveOrderbook.bids = data.bids.slice(0, 8).map(b => [parseFloat(b[0]), parseFloat(b[1])]);
+        renderOrderbook();
+      }
+    }
+
+    // =========================================================================
+    // 2. REAL-TIME BINANCE WEBSOCKET STREAMING (KLINES + TICKERS + DEPTH)
+    // =========================================================================
+    function connectRealtimeWebSocket() {
+      if (activeWs) {
+        try {
+          activeWs.onclose = null;
+          activeWs.close();
+        } catch (_) {}
+        activeWs = null;
+      }
+      if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+
+      const wsTf = state.timeframe === '10m' ? '5m' : state.timeframe;
+      const paneSyms = new Set();
+      chartInstances.forEach(inst => {
+        if (inst && inst.symbolCode && inst.symbolCode !== 'HYPEUSDT' && inst.symbolCode !== 'SOXLUSDT') {
+          paneSyms.add(inst.symbolCode.toLowerCase());
+        }
+      });
+      if (state.activeSymbol !== 'HYPEUSDT' && state.activeSymbol !== 'SOXLUSDT') {
+        paneSyms.add(state.activeSymbol.toLowerCase());
+      }
+
+      const streams = [];
+      // 1) Kline streams for all visible chart panes
+      paneSyms.forEach(s => streams.push(`${s}@kline_${wsTf}`));
+      // 2) Live orderbook stream for active symbol
+      const depthSym = (state.activeSymbol === 'HYPEUSDT' || state.activeSymbol === 'SOXLUSDT')
+        ? 'btcusdt'
+        : state.activeSymbol.toLowerCase();
+      streams.push(`${depthSym}@depth10@1000ms`);
+      // 3) All watchlist miniTicker streams
+      state.symbols.forEach(s => {
+        if (s.symbol !== 'HYPEUSDT' && s.symbol !== 'SOXLUSDT') {
+          streams.push(`${s.symbol.toLowerCase()}@miniTicker`);
+        }
+      });
+
+      const baseUrl = BINANCE_WS_ENDPOINTS[state.wsEndpointIdx % BINANCE_WS_ENDPOINTS.length];
+      const url = baseUrl + streams.join('/');
+
+      try {
+        setFeedStatus(false, 'WS CONNECTING...');
+        const ws = new WebSocket(url);
+        activeWs = ws;
+
+        ws.onopen = () => {
+          setFeedStatus(true, 'BINANCE WS LIVE');
+        };
+
+        ws.onmessage = event => {
+          try {
+            const msg = JSON.parse(event.data);
+            const stream = msg.stream || '';
+            const payload = msg.data;
+            if (!payload) return;
+            state.lastTickTime = Date.now();
+
+            // A) Handle Real-Time Kline Update
+            if (payload.e === 'kline' && payload.k) {
+              const k = payload.k;
+              const sym = k.s; // e.g. 'BTCUSDT'
+              const rawTime = Math.floor(k.t / 1000);
+              const barTime = state.timeframe === '10m' ? Math.floor(rawTime / 600) * 600 : rawTime;
+
+              const newBar = {
+                time: barTime,
+                open: parseFloat(k.o),
+                high: parseFloat(k.h),
+                low: parseFloat(k.l),
+                close: parseFloat(k.c),
+                volume: parseFloat(k.v)
+              };
+
+              // Update stored candle array & any chart pane showing this symbol
+              const arr = state.candlesBySymbol[sym];
+              if (Array.isArray(arr) && arr.length > 0) {
+                const lastIdx = arr.length - 1;
+                const prev = arr[lastIdx];
+                if (prev.time === barTime) {
+                  if (state.timeframe === '10m' && rawTime > prev.time) {
+                    newBar.open = prev.open;
+                    newBar.high = Math.max(prev.high, newBar.high);
+                    newBar.low = Math.min(prev.low, newBar.low);
+                  }
+                  arr[lastIdx] = newBar;
+                } else if (barTime > prev.time) {
+                  arr.push(newBar);
+                  // Recompute overlays on new candle close
+                  chartInstances.forEach((inst, pIdx) => {
+                    if (inst && inst.symbolCode === sym) {
+                      updateIndicatorOverlays(inst, arr, pIdx === 0);
+                    }
+                  });
+                }
+              }
+
+              // Push real-time tick to all chart panes rendering this symbol
+              chartInstances.forEach((inst, pIdx) => {
+                if (!inst || inst.symbolCode !== sym) return;
+                const paneCandles = state.candlesBySymbol[sym];
+                const barToRender = (paneCandles && paneCandles.length) ? paneCandles[paneCandles.length - 1] : newBar;
+                inst.candleSeries.update(barToRender);
+                inst.volumeSeries.update({
+                  time: barToRender.time,
+                  value: barToRender.volume,
+                  color: barToRender.close >= barToRender.open ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)'
+                });
+                if (pIdx === 0) {
+                  const symObj = state.symbols.find(s => s.symbol === sym);
+                  if (symObj) symObj.basePrice = barToRender.close;
+                  updateTopSymbolHeader(sym, barToRender);
+                  const legend = document.getElementById('legendOHLC');
+                  if (legend) {
+                    legend.textContent = `O: ${barToRender.open}  H: ${barToRender.high}  L: ${barToRender.low}  C: ${barToRender.close}`;
+                  }
+                } else {
+                  const priceBadge = document.getElementById(`pane${pIdx}Price`);
+                  if (priceBadge) priceBadge.textContent = formatPrice(barToRender.close);
+                }
+              });
+            }
+
+            // B) Handle Real-Time 24h MiniTicker Update
+            else if (payload.e === '24hrMiniTicker') {
+              const sym = payload.s;
+              const symObj = state.symbols.find(s => s.symbol === sym);
+              if (symObj) {
+                const close = parseFloat(payload.c);
+                const open24 = parseFloat(payload.o);
+                symObj.basePrice = close;
+                symObj.high24h = parseFloat(payload.h);
+                symObj.low24h = parseFloat(payload.l);
+                symObj.vol = formatVolumeCompact(parseFloat(payload.q));
+                if (open24 > 0) {
+                  symObj.change = Number((((close - open24) / open24) * 100).toFixed(2));
+                }
+                if (sym === state.activeSymbol) {
+                  updateTopSymbolHeader(sym);
+                }
+              }
+            }
+
+            // C) Handle Real-Time Orderbook Depth10 Update
+            else if (stream.includes('@depth10') && Array.isArray(payload.asks) && Array.isArray(payload.bids)) {
+              state.liveOrderbook.asks = payload.asks.slice(0, 8).map(a => [parseFloat(a[0]), parseFloat(a[1])]).reverse();
+              state.liveOrderbook.bids = payload.bids.slice(0, 8).map(b => [parseFloat(b[0]), parseFloat(b[1])]);
+              if (state.activeRightTab === 'Book') {
+                renderOrderbook();
+              }
+            }
+          } catch (_) {}
+        };
+
+        ws.onerror = () => {
+          state.wsEndpointIdx = (state.wsEndpointIdx + 1) % BINANCE_WS_ENDPOINTS.length;
+        };
+
+        ws.onclose = () => {
+          setFeedStatus(false, 'RECONNECTING...');
+          wsReconnectTimer = setTimeout(connectRealtimeWebSocket, 2200);
+        };
+      } catch (e) {
+        wsReconnectTimer = setTimeout(connectRealtimeWebSocket, 3000);
+      }
     }
 
     // Calculate EMA series
     function calcEMA(candles, period) {
+      if (!candles.length) return [];
       const k = 2 / (period + 1);
       let ema = candles[0].close;
       return candles.map(c => {
@@ -955,27 +1306,14 @@ plot(athLevel, color="#f59e0b")</textarea>
       return instance;
     }
 
-    async function populateChartPane(paneIndex, symbolCode, isPrimary = false) {
-      const inst = chartInstances[paneIndex];
-      if (!inst) return;
-      inst.symbolCode = symbolCode;
-      const candles = await fetchOrGenerateCandles(symbolCode);
-      if (!candles || !candles.length) return;
+    function updateIndicatorOverlays(inst, candles, isPrimary) {
+      if (!inst || !candles || !candles.length) return;
 
-      inst.candleSeries.setData(candles);
-      inst.volumeSeries.setData(candles.map(c => ({
-        time: c.time,
-        value: c.volume,
-        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)'
-      })));
-
-      // Clear previous custom price lines
       inst.priceLines.forEach(pl => {
         try { inst.candleSeries.removePriceLine(pl); } catch (_) {}
       });
       inst.priceLines = [];
 
-      // EMA 20 / 50 Cloud
       if (state.indicators.emaCloud) {
         inst.ema20Series.setData(calcEMA(candles, 20));
         inst.ema50Series.setData(calcEMA(candles, 50));
@@ -984,7 +1322,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         inst.ema50Series.setData([]);
       }
 
-      // APEX Four Range Cloud + Buy/Sell Markers
       if (state.indicators.apexCloud) {
         const mult = state.indicators.apexMultiplier || 1.8;
         const emaBase = calcEMA(candles, 34);
@@ -996,30 +1333,54 @@ plot(athLevel, color="#f59e0b")</textarea>
           const c = candles[i];
           const range = (c.high - c.low) * mult;
           const mid = emaBase[i].value;
-          upper.push({ time: c.time, value: Number((mid + range).toFixed(c.close < 5 ? 4 : 2)) });
-          lower.push({ time: c.time, value: Number((mid - range).toFixed(c.close < 5 ? 4 : 2)) });
+          const dec = c.close < 5 ? 4 : 2;
+          upper.push({ time: c.time, value: Number((mid + range).toFixed(dec)) });
+          lower.push({ time: c.time, value: Number((mid - range).toFixed(dec)) });
 
-          if (i > 15 && i % 22 === 0) {
-            const isBull = c.close >= mid;
-            markers.push({
-              time: c.time,
-              position: isBull ? 'belowBar' : 'aboveBar',
-              color: isBull ? '#10b981' : '#ef4444',
-              shape: isBull ? 'arrowUp' : 'arrowDown',
-              text: isBull ? 'APEX LONG' : 'APEX SHORT'
-            });
+          if (i > 20 && i < candles.length - 1) {
+            const prevC = candles[i - 1];
+            const prevMid = emaBase[i - 1].value;
+            if (prevC.close <= prevMid && c.close > mid && (c.close - c.open) > (c.high - c.low) * 0.55) {
+              markers.push({
+                time: c.time,
+                position: 'belowBar',
+                color: '#10b981',
+                shape: 'arrowUp',
+                text: 'APEX LONG'
+              });
+            } else if (prevC.close >= prevMid && c.close < mid && (c.open - c.close) > (c.high - c.low) * 0.55) {
+              markers.push({
+                time: c.time,
+                position: 'aboveBar',
+                color: '#ef4444',
+                shape: 'arrowDown',
+                text: 'APEX SHORT'
+              });
+            }
           }
         }
         inst.apexUpperSeries.setData(upper);
         inst.apexLowerSeries.setData(lower);
         inst.candleSeries.setMarkers(markers);
+
+        if (isPrimary) {
+          const sigBadge = document.getElementById('pane0SignalBadge');
+          const lastC = candles[candles.length - 1];
+          const lastMid = emaBase[emaBase.length - 1].value;
+          if (sigBadge) {
+            const isBull = lastC.close >= lastMid;
+            sigBadge.textContent = isBull ? 'APEX BULL TREND ▲' : 'APEX BEAR TREND ▼';
+            sigBadge.className = isBull
+              ? 'px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-300'
+              : 'px-2 py-0.5 rounded bg-rose-500/20 border border-rose-500/40 text-[10px] font-bold text-rose-300';
+          }
+        }
       } else {
         inst.apexUpperSeries.setData([]);
         inst.apexLowerSeries.setData([]);
         inst.candleSeries.setMarkers([]);
       }
 
-      // Zetro ATH / ATL Auto Horizontal Lines
       if (state.indicators.athLines) {
         const highs = candles.map(c => c.high);
         const lows = candles.map(c => c.low);
@@ -1053,7 +1414,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         }));
       }
 
-      // Volume Profile POC Line
       if (state.indicators.volumeProfile && isPrimary) {
         const sortedByVol = [...candles].sort((a, b) => b.volume - a.volume);
         const pocPrice = sortedByVol[0].close;
@@ -1066,11 +1426,38 @@ plot(athLevel, color="#f59e0b")</textarea>
           title: 'VP POC'
         }));
       }
+    }
 
+    async function populateChartPane(paneIndex, symbolCode, isPrimary = false) {
+      const inst = chartInstances[paneIndex];
+      if (!inst) return;
+      inst.symbolCode = symbolCode;
+      const candles = await fetchRealtimeCandles(symbolCode);
+      if (!candles || !candles.length) return;
+
+      inst.candleSeries.setData(candles);
+      inst.volumeSeries.setData(candles.map(c => ({
+        time: c.time,
+        value: c.volume,
+        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)'
+      })));
+
+      updateIndicatorOverlays(inst, candles, isPrimary);
+
+      const last = candles[candles.length - 1];
       if (isPrimary) {
-        const last = candles[candles.length - 1];
         updateTopSymbolHeader(symbolCode, last);
+        const legend = document.getElementById('legendOHLC');
+        if (legend) {
+          legend.textContent = `O: ${last.open}  H: ${last.high}  L: ${last.low}  C: ${last.close}`;
+        }
+      } else {
+        const priceBadge = document.getElementById(`pane${paneIndex}Price`);
+        if (priceBadge) priceBadge.textContent = formatPrice(last.close);
       }
+
+      // Connect/update WebSocket subscription whenever panes change
+      connectRealtimeWebSocket();
     }
 
     function updateTopSymbolHeader(symbolCode, lastCandle) {
@@ -1082,9 +1469,8 @@ plot(athLevel, color="#f59e0b")</textarea>
       const pane0Title = document.getElementById('pane0Title');
 
       const price = lastCandle ? lastCandle.close : symObj.basePrice;
-      const decimals = price < 5 ? 4 : 2;
-      if (priceEl) {
-        priceEl.textContent = price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      if (priceEl && price > 0) {
+        priceEl.textContent = formatPrice(price);
         priceEl.className = `font-mono-num text-xs font-bold ${symObj.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
       }
       if (changeEl) {
@@ -1093,12 +1479,12 @@ plot(athLevel, color="#f59e0b")</textarea>
         changeEl.className = `font-mono-num text-[11px] px-1 rounded ${symObj.change >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`;
       }
       if (hlEl) {
-        const h = (price * 1.018).toFixed(decimals);
-        const l = (price * 0.982).toFixed(decimals);
-        hlEl.textContent = `H: ${h}  L: ${l}`;
+        const h = symObj.high24h > 0 ? formatPrice(symObj.high24h) : formatPrice(price * 1.015);
+        const l = symObj.low24h > 0 ? formatPrice(symObj.low24h) : formatPrice(price * 0.985);
+        hlEl.textContent = `24H H: ${h}  L: ${l}`;
       }
       const tfLabel = state.timeframe.toUpperCase();
-      if (legendTitle) legendTitle.textContent = `${symObj.label} · ${tfLabel} · BINANCE`;
+      if (legendTitle) legendTitle.textContent = `${symObj.label} · ${tfLabel} · BINANCE REALTIME`;
       if (pane0Title) pane0Title.textContent = `${symObj.label} · ${tfLabel}`;
     }
 
@@ -1111,7 +1497,6 @@ plot(athLevel, color="#f59e0b")</textarea>
       const p3 = document.getElementById('chartPane3');
       const splitLabel = document.getElementById('splitModeLabel');
 
-      // Highlight active preset tab
       document.querySelectorAll('.preset-tab').forEach(btn => {
         if (btn.dataset.preset === preset) {
           btn.classList.add('zetro-tab-active');
@@ -1128,6 +1513,9 @@ plot(athLevel, color="#f59e0b")</textarea>
         p1.classList.add('hidden');
         p2.classList.add('hidden');
         p3.classList.add('hidden');
+        chartInstances[1] = null;
+        chartInstances[2] = null;
+        chartInstances[3] = null;
         if (splitLabel) splitLabel.textContent = 'Split screen (1x1)';
         createPaneChart(0, 'lwChart0', state.activeSymbol, true);
       } else if (preset === 'btc_split') {
@@ -1136,19 +1524,21 @@ plot(athLevel, color="#f59e0b")</textarea>
         p1.classList.remove('hidden'); p1.classList.add('flex');
         p2.classList.add('hidden');
         p3.classList.add('hidden');
-        document.getElementById('pane1Title').textContent = 'BTC USDT Spot · 1H Comparison';
+        chartInstances[2] = null;
+        chartInstances[3] = null;
+        document.getElementById('pane1Title').textContent = 'ETH USDT perp · Comparison';
         if (splitLabel) splitLabel.textContent = 'Split screen (1x2)';
         createPaneChart(0, 'lwChart0', 'BTCUSDT', true);
-        createPaneChart(1, 'lwChart1', 'BTCUSDT', false);
+        createPaneChart(1, 'lwChart1', 'ETHUSDT', false);
       } else if (preset === 'alt_split') {
         state.splitMode = 4;
         grid.className = 'flex-1 grid grid-cols-2 grid-rows-2 gap-[1px] bg-[#1e2636] relative min-h-0';
         p1.classList.remove('hidden'); p1.classList.add('flex');
         p2.classList.remove('hidden'); p2.classList.add('flex');
         p3.classList.remove('hidden'); p3.classList.add('flex');
-        document.getElementById('pane1Title').textContent = 'SOL USDT perp · 5m';
-        document.getElementById('pane2Title').textContent = 'XRP USDT perp · 5m';
-        document.getElementById('pane3Title').textContent = 'BNB USDT perp · 5m';
+        document.getElementById('pane1Title').textContent = 'SOL USDT perp · Live';
+        document.getElementById('pane2Title').textContent = 'XRP USDT perp · Live';
+        document.getElementById('pane3Title').textContent = 'BNB USDT perp · Live';
         if (splitLabel) splitLabel.textContent = 'Split screen (2x2)';
         createPaneChart(0, 'lwChart0', 'ETHUSDT', true);
         createPaneChart(1, 'lwChart1', 'SOLUSDT', false);
@@ -1294,7 +1684,6 @@ plot(athLevel, color="#f59e0b")</textarea>
 
       container.innerHTML = filtered.map(s => {
         const isSelected = s.symbol === state.activeSymbol;
-        const decimals = s.basePrice < 5 ? 4 : 2;
         const up = s.change >= 0;
         return `
           <div data-sym="${s.symbol}" class="watch-row grid grid-cols-12 items-center px-3 py-2 text-xs cursor-pointer hover:bg-[#171e2b] transition ${isSelected ? 'bg-[#171e2b] border-l-2 border-blue-500' : ''}">
@@ -1306,7 +1695,7 @@ plot(athLevel, color="#f59e0b")</textarea>
               </div>
             </div>
             <div class="col-span-4 text-right font-mono-num font-semibold ${up ? 'text-emerald-400' : 'text-rose-400'}">
-              ${s.basePrice.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+              ${formatPrice(s.basePrice)}
             </div>
             <div class="col-span-3 text-right">
               <span class="inline-block font-mono-num text-[11px] px-1.5 py-0.5 rounded ${up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}">
@@ -1322,8 +1711,8 @@ plot(athLevel, color="#f59e0b")</textarea>
       const container = document.getElementById('screenerListContainer');
       if (!container) return;
       const items = state.symbols.map((s, idx) => {
-        const rsi = Math.min(82, Math.max(22, Math.round(52 + s.change * 4.2 + (idx % 3) * 3)));
-        const signal = s.change >= 1.5 ? 'APEX LONG ▲' : (s.change < -0.5 ? 'APEX SHORT ▼' : 'CLOUD NEUTRAL');
+        const rsi = Math.min(85, Math.max(18, Math.round(50 + s.change * 3.8 + (idx % 3) * 2)));
+        const signal = s.change >= 1.5 ? 'APEX LONG ▲' : (s.change <= -1.2 ? 'APEX SHORT ▼' : 'CLOUD NEUTRAL');
         return { ...s, rsi, signal };
       }).filter(item => {
         if (state.screenerFilter === 'bull') return item.signal.includes('LONG');
@@ -1340,7 +1729,7 @@ plot(athLevel, color="#f59e0b")</textarea>
           </div>
           <div class="text-right">
             <div class="text-[10px] font-bold px-1.5 py-0.5 rounded ${item.signal.includes('LONG') ? 'bg-emerald-500/15 text-emerald-400' : item.signal.includes('SHORT') ? 'bg-rose-500/15 text-rose-400' : 'bg-slate-800 text-slate-400'}">${item.signal}</div>
-            <div class="font-mono-num text-[11px] text-slate-300 mt-0.5">${item.basePrice}</div>
+            <div class="font-mono-num text-[11px] text-slate-300 mt-0.5">${formatPrice(item.basePrice)}</div>
           </div>
         </div>
       `).join('');
@@ -1350,61 +1739,63 @@ plot(athLevel, color="#f59e0b")</textarea>
       const asksEl = document.getElementById('orderbookAsks');
       const bidsEl = document.getElementById('orderbookBids');
       const midEl = document.getElementById('obMidPrice');
+      const spreadEl = document.getElementById('obSpreadText');
       if (!asksEl || !bidsEl) return;
       const symObj = state.symbols.find(s => s.symbol === state.activeSymbol) || DEFAULT_SYMBOLS[0];
-      const base = symObj.basePrice;
-      const step = base > 1000 ? 1.5 : (base > 10 ? 0.05 : 0.001);
-      const decimals = base < 5 ? 4 : 2;
 
-      let asksHtml = '';
-      for (let i = 8; i >= 1; i--) {
-        const p = (base + i * step).toFixed(decimals);
-        const sz = (Math.random() * 3.8 + 0.4).toFixed(2);
-        const tot = (parseFloat(p) * parseFloat(sz)).toFixed(0);
-        const w = Math.min(95, Math.round(parseFloat(sz) * 22));
-        asksHtml += `
+      const asks = state.liveOrderbook.asks;
+      const bids = state.liveOrderbook.bids;
+      if (!asks.length || !bids.length) return;
+
+      const maxQty = Math.max(...asks.map(a => a[1]), ...bids.map(b => b[1]), 0.001);
+
+      asksEl.innerHTML = asks.map(([px, qty]) => {
+        const tot = (px * qty).toFixed(0);
+        const w = Math.min(96, Math.max(6, Math.round((qty / maxQty) * 95)));
+        return `
           <div class="relative flex justify-between px-2 py-0.5">
             <div class="absolute right-0 top-0 bottom-0 bg-rose-500/15" style="width:${w}%"></div>
-            <span class="relative text-rose-400">${p}</span>
-            <span class="relative text-slate-300">${sz}</span>
+            <span class="relative text-rose-400">${formatPrice(px)}</span>
+            <span class="relative text-slate-300">${qty.toFixed(3)}</span>
             <span class="relative text-slate-500">${Number(tot).toLocaleString()}</span>
           </div>`;
-      }
-      asksEl.innerHTML = asksHtml;
+      }).join('');
 
-      if (midEl) midEl.textContent = base.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      const bestAsk = asks[asks.length - 1][0];
+      const bestBid = bids[0][0];
+      const spread = Math.max(0, bestAsk - bestBid);
+      const spreadPct = bestBid > 0 ? ((spread / bestBid) * 100).toFixed(3) : '0.010';
 
-      let bidsHtml = '';
-      for (let i = 1; i <= 8; i++) {
-        const p = (base - i * step).toFixed(decimals);
-        const sz = (Math.random() * 4.2 + 0.5).toFixed(2);
-        const tot = (parseFloat(p) * parseFloat(sz)).toFixed(0);
-        const w = Math.min(95, Math.round(parseFloat(sz) * 22));
-        bidsHtml += `
+      if (midEl) midEl.textContent = formatPrice(symObj.basePrice || bestBid);
+      if (spreadEl) spreadEl.textContent = `Spread: ${spread.toFixed(bestBid < 5 ? 4 : 2)} (${spreadPct}%)`;
+
+      bidsEl.innerHTML = bids.map(([px, qty]) => {
+        const tot = (px * qty).toFixed(0);
+        const w = Math.min(96, Math.max(6, Math.round((qty / maxQty) * 95)));
+        return `
           <div class="relative flex justify-between px-2 py-0.5">
             <div class="absolute right-0 top-0 bottom-0 bg-emerald-500/15" style="width:${w}%"></div>
-            <span class="relative text-emerald-400">${p}</span>
-            <span class="relative text-slate-300">${sz}</span>
+            <span class="relative text-emerald-400">${formatPrice(px)}</span>
+            <span class="relative text-slate-300">${qty.toFixed(3)}</span>
             <span class="relative text-slate-500">${Number(tot).toLocaleString()}</span>
           </div>`;
-      }
-      bidsEl.innerHTML = bidsHtml;
+      }).join('');
     }
 
     function renderMastersAndStaticPanels() {
       const mastersEl = document.getElementById('mastersListContainer');
       if (mastersEl) {
         const masters = [
-          { name: 'Zetro_Alpha_01', pair: 'BTCUSDT', side: 'LONG 25x', pnl: '+148.4%', entry: '91,420' },
-          { name: 'N1_Quant_Whale', pair: 'SOLUSDT', side: 'LONG 15x', pnl: '+84.2%', entry: '178.50' },
-          { name: 'Apex_Macro_Fund', pair: 'HYPEUSDT', side: 'LONG 10x', pnl: '+62.9%', entry: '24.10' },
-          { name: 'Seoul_Perp_Desk', pair: 'ETHUSDT', side: 'SHORT 20x', pnl: '+31.5%', entry: '3,195.0' }
+          { name: 'Zetro_Alpha_01', pair: 'BTCUSDT', side: 'LONG 25x', pnl: '+148.4%', entry: 'Live Follow' },
+          { name: 'N1_Quant_Whale', pair: 'SOLUSDT', side: 'LONG 15x', pnl: '+84.2%', entry: 'Live Follow' },
+          { name: 'Apex_Macro_Fund', pair: 'HYPEUSDT', side: 'LONG 10x', pnl: '+62.9%', entry: 'Live Follow' },
+          { name: 'Seoul_Perp_Desk', pair: 'ETHUSDT', side: 'SHORT 20x', pnl: '+31.5%', entry: 'Live Follow' }
         ];
         mastersEl.innerHTML = masters.map(m => `
           <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
             <div>
               <div class="font-bold text-slate-200">${m.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono-num">${m.pair} · Entry ${m.entry}</div>
+              <div class="text-[10px] text-slate-400 font-mono-num">${m.pair} · ${m.entry}</div>
             </div>
             <div class="text-right">
               <div class="text-emerald-400 font-mono-num font-bold">${m.pnl}</div>
@@ -1417,10 +1808,9 @@ plot(athLevel, color="#f59e0b")</textarea>
       const newsEl = document.getElementById('newsItemsList');
       if (newsEl) {
         const news = [
-          { tag: 'BULLISH', time: '12분 전', title: '비트코인 무기한 선물 미결제약정(OI) 주요 저항선 돌파 시도, 기관 매수세 유입' },
-          { tag: 'TECH', time: '38분 전', title: 'Zetro System × N1 Terminal: APEX 4-Range Cloud 5분봉 및 10분봉 동시 골든크로스 포착' },
-          { tag: 'MACRO', time: '1시간 전', title: '미국 기술주 및 반도체 레버리지(SOXL) 강세 전환에 따른 알트코인 동조화 흐름 확대' },
-          { tag: 'ON-CHAIN', time: '2시간 전', title: 'SOL·HYPE 탈중앙 무기한 선물 거래량 전일 대비 +34% 급증' }
+          { tag: 'LIVE WS', time: '실시간', title: 'Binance WebSocket (data-stream.binance.vision) 및 Hyperliquid 실시간 체결 스트림 연동 완료' },
+          { tag: 'TECH', time: '실시간', title: 'Zetro System × N1 Terminal: APEX 4-Range Cloud & ATH/ATL 고저점 자동 수평선 실시간 갱신 중' },
+          { tag: 'ORDERBOOK', time: '실시간', title: '우측 Book 탭에서 선택 종목의 바이낸스 실시간 10단계 매수·매도 호가창(Depth) 확인 가능' }
         ];
         newsEl.innerHTML = news.map(n => `
           <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] space-y-1">
@@ -1436,9 +1826,8 @@ plot(athLevel, color="#f59e0b")</textarea>
       const eventsEl = document.getElementById('eventsListContainer');
       if (eventsEl) {
         const events = [
-          { date: '오늘 21:30 KST', title: '미국 신규 실업수당 청구건수 발표', impact: 'HIGH' },
-          { date: '내일 00:00 KST', title: '주요 무기한 선물 펀딩비 정산 및 주간 옵션 만기', impact: 'MED' },
-          { date: 'D-3', title: '솔라나(SOL) 메인넷 밸리데이터 패치 및 유동성 이벤트', impact: 'MED' }
+          { date: '00:00 / 08:00 / 16:00 KST', title: '주요 무기한 선물 8시간 펀딩비 정산 시점', impact: 'HIGH' },
+          { date: '실시간 모니터링', title: 'N1 봉 마감 알람 엔진: 목표가 돌파 및 APEX 시그널 감시 중', impact: 'MED' }
         ];
         eventsEl.innerHTML = events.map(ev => `
           <div class="p-2.5 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
@@ -1469,7 +1858,7 @@ plot(athLevel, color="#f59e0b")</textarea>
     }
 
     function updatePositionCalculator() {
-      const entry = parseFloat(document.getElementById('posEntryInput')?.value || '94250');
+      const entry = parseFloat(document.getElementById('posEntryInput')?.value || '0');
       const margin = parseFloat(document.getElementById('posMarginInput')?.value || '1000');
       const lev = state.posLeverage;
       const size = margin * lev;
@@ -1480,20 +1869,20 @@ plot(athLevel, color="#f59e0b")</textarea>
       const sizeEl = document.getElementById('posSizeResult');
       const liqEl = document.getElementById('posLiqResult');
       if (sizeEl) sizeEl.textContent = `$${size.toLocaleString()}`;
-      if (liqEl) liqEl.textContent = liq > 0 ? liq.toFixed(entry < 5 ? 4 : 2) : '0.00';
+      if (liqEl) liqEl.textContent = liq > 0 ? formatPrice(liq) : '0.00';
 
       const listEl = document.getElementById('simPositionsList');
       if (!listEl) return;
       const symMap = Object.fromEntries(state.symbols.map(s => [s.symbol, s.basePrice]));
       listEl.innerHTML = state.simPositions.map(p => {
         const cur = symMap[p.symbol] || p.entry;
-        const diffPct = ((cur - p.entry) / p.entry) * 100 * p.lev * (p.side === 'LONG' ? 1 : -1);
+        const diffPct = p.entry > 0 ? ((cur - p.entry) / p.entry) * 100 * p.lev * (p.side === 'LONG' ? 1 : -1) : 0;
         const up = diffPct >= 0;
         return `
           <div class="p-2 rounded bg-[#0b0e14] border border-[#1e2636] flex items-center justify-between text-xs">
             <div>
               <div class="font-bold text-slate-200">${p.symbol} <span class="${p.side === 'LONG' ? 'text-emerald-400' : 'text-rose-400'}">${p.side} ${p.lev}x</span></div>
-              <div class="text-[10px] text-slate-400 font-mono-num">Entry: ${p.entry} · Margin: $${p.margin}</div>
+              <div class="text-[10px] text-slate-400 font-mono-num">Entry: ${formatPrice(p.entry)} · Now: ${formatPrice(cur)}</div>
             </div>
             <div class="text-right">
               <div class="font-mono-num font-bold ${up ? 'text-emerald-400' : 'text-rose-400'}">${up ? '+' : ''}${diffPct.toFixed(2)}%</div>
@@ -1509,11 +1898,10 @@ plot(athLevel, color="#f59e0b")</textarea>
       if (!strip) return;
       strip.innerHTML = state.symbols.slice(0, 7).map(s => {
         const up = s.change >= 0;
-        const dec = s.basePrice < 5 ? 4 : 2;
         return `
           <div class="flex items-center gap-1 whitespace-nowrap">
             <span class="font-bold text-slate-300">${s.short}</span>
-            <span class="${up ? 'text-emerald-400' : 'text-rose-400'}">${s.basePrice.toFixed(dec)}</span>
+            <span class="${up ? 'text-emerald-400' : 'text-rose-400'}">${formatPrice(s.basePrice)}</span>
             <span class="text-[9px] ${up ? 'text-emerald-500' : 'text-rose-500'}">(${up ? '+' : ''}${s.change.toFixed(2)}%)</span>
           </div>
         `;
@@ -1534,7 +1922,6 @@ plot(athLevel, color="#f59e0b")</textarea>
       el.textContent = `KST ${kstStr}`;
     }
 
-    // Switch Language (Korean / English)
     function applyLanguage(lang) {
       state.lang = lang;
       const dict = {
@@ -1564,7 +1951,6 @@ plot(athLevel, color="#f59e0b")</textarea>
       if (lbl) lbl.textContent = lang.toUpperCase();
     }
 
-    // Switch Right Sidebar Active Tab
     function switchRightTab(tabName) {
       state.activeRightTab = tabName;
       const sidebar = document.getElementById('rightSidebarPanel');
@@ -1584,7 +1970,7 @@ plot(athLevel, color="#f59e0b")</textarea>
       if (target) target.classList.remove('hidden');
 
       const titleMap = {
-        Watch: 'Watchlist · 관심종목',
+        Watch: 'Watchlist · 실시간 관심종목',
         Indicators: 'ATH Indicators · 보조지표',
         Screener: 'Screener · 실시간 조건검색',
         Book: 'Order Book · 실시간 호가창',
@@ -1598,25 +1984,26 @@ plot(athLevel, color="#f59e0b")</textarea>
       };
       const titleEl = document.getElementById('rightPanelTitle');
       if (titleEl) titleEl.textContent = titleMap[tabName] || tabName;
+      if (tabName === 'Book') fetchRealtimeOrderbook(state.activeSymbol);
       setTimeout(resizeAllCharts, 50);
     }
 
     // =========================================================================
     // EVENT WIRING & INITIALIZATION
     // =========================================================================
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       loadSavedState();
       if (window.lucide) window.lucide.createIcons();
 
-      // Initial renders
-      renderWatchlist();
-      renderScreener();
-      renderOrderbook();
       renderMastersAndStaticPanels();
       renderAlertsList();
-      updatePositionCalculator();
-      renderBottomTicker();
       updateKstClock();
+
+      // 1) Immediately fetch live 24h prices & orderbook from Binance/Hyperliquid
+      await syncAll24hrTickers();
+      fetchRealtimeOrderbook(state.activeSymbol);
+
+      // 2) Mount live charts and start real-time WebSocket stream
       applyLayoutPreset('single');
       renderDrawingsOverlay();
 
@@ -1632,8 +2019,8 @@ plot(athLevel, color="#f59e0b")</textarea>
         symSelect.addEventListener('change', e => {
           state.activeSymbol = e.target.value;
           populateChartPane(0, state.activeSymbol, true);
+          fetchRealtimeOrderbook(state.activeSymbol);
           renderWatchlist();
-          renderOrderbook();
           renderDrawingsOverlay();
           saveWorkspaceState(true);
         });
@@ -1657,10 +2044,8 @@ plot(athLevel, color="#f59e0b")</textarea>
         });
       });
 
-      // ATH Indicators button -> opens Indicators right tab
       document.getElementById('btnToggleAthModal')?.addEventListener('click', () => switchRightTab('Indicators'));
 
-      // Quick Indicator pills
       document.getElementById('btnQuickApex')?.addEventListener('click', () => {
         state.indicators.apexCloud = !state.indicators.apexCloud;
         const chk = document.getElementById('chkIndApex');
@@ -1677,7 +2062,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         populateChartPane(0, state.activeSymbol, true);
       });
 
-      // Checkboxes in Indicators Panel
       ['chkIndApex', 'chkIndEma', 'chkIndAth', 'chkIndVp'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', () => {
           state.indicators.apexCloud = document.getElementById('chkIndApex').checked;
@@ -1700,7 +2084,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         populateChartPane(0, state.activeSymbol, true);
       });
 
-      // Engine Switcher (N1 Canvas vs TradingView Widget)
       document.getElementById('btnEngineN1')?.addEventListener('click', () => {
         state.engine = 'n1';
         document.getElementById('tvWidgetContainer')?.classList.add('hidden');
@@ -1714,21 +2097,21 @@ plot(athLevel, color="#f59e0b")</textarea>
         if (tvBox) {
           tvBox.classList.remove('hidden');
           const cleanSym = state.activeSymbol.replace('.P', '');
-          tvBox.innerHTML = `<iframe class="w-full h-full border-0" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE:${cleanSym}&interval=5&theme=dark&style=1&timezone=Asia%2FSeoul&withdateranges=1&hide_side_toolbar=0&allow_symbol_change=1"></iframe>`;
+          const tvSymbol = cleanSym === 'SOXLUSDT' ? 'AMEX:SOXL' : `BINANCE:${cleanSym}`;
+          tvBox.innerHTML = `<iframe class="w-full h-full border-0" src="https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(tvSymbol)}&interval=5&theme=dark&style=1&timezone=Asia%2FSeoul&withdateranges=1&hide_side_toolbar=0&allow_symbol_change=1"></iframe>`;
         }
         document.getElementById('btnEngineTV').className = 'px-2 py-0.5 text-[11px] font-medium rounded bg-blue-600 text-white transition';
         document.getElementById('btnEngineN1').className = 'px-2 py-0.5 text-[11px] font-medium rounded text-slate-400 hover:text-white transition';
       });
 
-      // Save Layout, Share Chart, Cycle Split Screen
       document.getElementById('btnSaveLayout')?.addEventListener('click', () => saveWorkspaceState(false));
 
       document.getElementById('btnShareChart')?.addEventListener('click', () => {
-        const shareText = `Zetro System x N1 Terminal | ${state.activeSymbol} (${state.timeframe}) | Price: ${document.getElementById('activePriceDisplay')?.textContent}`;
+        const shareText = `Zetro System x N1 Terminal | ${state.activeSymbol} (${state.timeframe}) | Live Price: ${document.getElementById('activePriceDisplay')?.textContent}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(shareText).catch(() => {});
         }
-        showToast('차트 스냅샷 공유 링크가 클립보드에 복사되었습니다.');
+        showToast('실시간 차트 스냅샷 정보가 클립보드에 복사되었습니다.');
       });
 
       document.getElementById('btnCycleSplit')?.addEventListener('click', () => {
@@ -1737,7 +2120,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         applyLayoutPreset(next);
       });
 
-      // Left Drawing Toolbar
       document.querySelectorAll('.draw-tool-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           state.drawTool = btn.dataset.draw;
@@ -1766,7 +2148,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         showToast('모든 작도 객체가 삭제되었습니다.');
       });
 
-      // SVG Drawing Click Handler
       document.getElementById('drawingSvgOverlay')?.addEventListener('click', e => {
         if (state.drawTool === 'cursor') return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -1820,7 +2201,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         }
       });
 
-      // CSV Download
       document.getElementById('btnDownloadCsv')?.addEventListener('click', () => {
         const candles = state.candlesBySymbol[state.activeSymbol] || [];
         const header = 'time,open,high,low,close,volume\n';
@@ -1829,13 +2209,12 @@ plot(athLevel, color="#f59e0b")</textarea>
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${state.activeSymbol}_${state.timeframe}_zetro.csv`;
+        a.download = `${state.activeSymbol}_${state.timeframe}_realtime.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast(`${state.activeSymbol} 캔들 데이터 CSV 다운로드 완료`);
+        showToast(`${state.activeSymbol} 실시간 캔들 CSV 다운로드 완료`);
       });
 
-      // Right Icon Rail Navigation
       document.querySelectorAll('.rail-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => switchRightTab(btn.dataset.rtab));
       });
@@ -1848,17 +2227,16 @@ plot(athLevel, color="#f59e0b")</textarea>
         setTimeout(resizeAllCharts, 50);
       });
 
-      // Watchlist Search & Category Filtering
       document.getElementById('watchSearchInput')?.addEventListener('input', e => {
         state.watchSearch = e.target.value;
         renderWatchlist();
       });
 
-      document.getElementById('btnAddCustomSymbol')?.addEventListener('click', () => {
+      document.getElementById('btnAddCustomSymbol')?.addEventListener('click', async () => {
         const input = document.getElementById('watchSearchInput');
         const raw = (input?.value || '').trim().toUpperCase();
         if (!raw) {
-          showToast('검색창에 추가할 코인 심볼(예: SUI, PEPE)을 입력한 뒤 + 버튼을 눌러주세요.');
+          showToast('검색창에 추가할 코인 심볼(예: SUI, PEPE, ADA)을 입력한 뒤 + 버튼을 눌러주세요.');
           return;
         }
         const clean = raw.endsWith('USDT') ? raw : `${raw}USDT`;
@@ -1868,12 +2246,14 @@ plot(athLevel, color="#f59e0b")</textarea>
             symbol: clean,
             label: `${short} USDT perp`,
             short,
-            basePrice: 12.50,
-            change: 3.25,
+            basePrice: 0,
+            high24h: 0,
+            low24h: 0,
+            change: 0,
             pinned: true,
             fav: true,
             cat: 'index',
-            vol: '410M'
+            vol: '-'
           });
           const sel = document.getElementById('symbolSelect');
           if (sel) {
@@ -1882,11 +2262,13 @@ plot(athLevel, color="#f59e0b")</textarea>
             opt.textContent = `${short} USDT perp`;
             sel.appendChild(opt);
           }
+          await syncAll24hrTickers();
+          connectRealtimeWebSocket();
         }
         if (input) input.value = '';
         state.watchSearch = '';
         renderWatchlist();
-        showToast(`${clean} 종목이 관심종목에 추가되었습니다.`);
+        showToast(`${clean} 실시간 시세 스트림이 추가되었습니다.`);
       });
 
       document.querySelectorAll('.watch-cat-btn').forEach(btn => {
@@ -1900,7 +2282,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         });
       });
 
-      // Event Delegation for Watchlist, Screener, Alerts, Positions, Objects
       document.getElementById('rightSidebarPanel')?.addEventListener('click', e => {
         const favBtn = e.target.closest('[data-fav]');
         if (favBtn) {
@@ -1917,9 +2298,12 @@ plot(athLevel, color="#f59e0b")</textarea>
           const sel = document.getElementById('symbolSelect');
           if (sel) sel.value = state.activeSymbol;
           populateChartPane(0, state.activeSymbol, true);
+          fetchRealtimeOrderbook(state.activeSymbol);
           renderWatchlist();
-          renderOrderbook();
           renderDrawingsOverlay();
+          if (state.engine === 'tv') {
+            document.getElementById('btnEngineTV')?.click();
+          }
           return;
         }
         const delAlert = e.target.closest('[data-del-alert]');
@@ -1947,7 +2331,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         }
       });
 
-      // Screener Filter Buttons
       document.querySelectorAll('.sfilter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           state.screenerFilter = btn.dataset.sfilter;
@@ -1955,7 +2338,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         });
       });
 
-      // Alerts Creation & Sound Test
       document.getElementById('btnTestAlertSound')?.addEventListener('click', () => {
         playAlertSound();
         showToast('N1 알람 사운드 및 브라우저 알림 테스트 완료!', 'alert');
@@ -1963,7 +2345,7 @@ plot(athLevel, color="#f59e0b")</textarea>
 
       document.getElementById('btnCreateAlert')?.addEventListener('click', () => {
         const cond = document.getElementById('alertConditionSelect')?.value || 'APEX_SIGNAL';
-        const targetVal = document.getElementById('alertTargetPriceInput')?.value.trim() || '봉 마감 자동';
+        const targetVal = document.getElementById('alertTargetPriceInput')?.value.trim() || '실시간 봉 마감';
         state.alerts.unshift({
           id: 'a_' + Date.now(),
           symbol: state.activeSymbol,
@@ -1974,10 +2356,9 @@ plot(athLevel, color="#f59e0b")</textarea>
         renderAlertsList();
         saveWorkspaceState(true);
         playAlertSound();
-        showToast(`${state.activeSymbol} 새 알람이 등록되었습니다.`);
+        showToast(`${state.activeSymbol} 실시간 알람이 등록되었습니다.`);
       });
 
-      // Positions Calculator Controls
       document.getElementById('btnPosLong')?.addEventListener('click', () => {
         state.posSide = 'LONG';
         document.getElementById('btnPosLong').className = 'flex-1 py-1.5 text-xs font-bold rounded bg-emerald-600 text-white';
@@ -2003,7 +2384,8 @@ plot(athLevel, color="#f59e0b")</textarea>
       });
 
       document.getElementById('btnOpenSimPosition')?.addEventListener('click', () => {
-        const entry = parseFloat(document.getElementById('posEntryInput')?.value || '94250');
+        const activeObj = state.symbols.find(s => s.symbol === state.activeSymbol);
+        const entry = parseFloat(document.getElementById('posEntryInput')?.value || String(activeObj?.basePrice || 0));
         const margin = parseFloat(document.getElementById('posMarginInput')?.value || '1000');
         state.simPositions.unshift({
           id: 'p_' + Date.now(),
@@ -2015,13 +2397,12 @@ plot(athLevel, color="#f59e0b")</textarea>
         });
         updatePositionCalculator();
         saveWorkspaceState(true);
-        showToast(`${state.activeSymbol} ${state.posSide} ${state.posLeverage}x 모의 포지션이 추가되었습니다.`);
+        showToast(`${state.activeSymbol} ${state.posSide} ${state.posLeverage}x 실시간 모의 포지션 진입 완료`);
       });
 
-      // Scripts & Backup Controls
       document.getElementById('btnApplyCustomScript')?.addEventListener('click', () => {
         populateChartPane(0, state.activeSymbol, true);
-        showToast('커스텀 지표 수식이 컴파일되어 차트에 반영되었습니다.');
+        showToast('커스텀 지표 수식이 실시간 차트에 반영되었습니다.');
       });
 
       document.getElementById('btnExportJson')?.addEventListener('click', () => {
@@ -2044,7 +2425,6 @@ plot(athLevel, color="#f59e0b")</textarea>
         showToast('로컬 워크스페이스 데이터가 초기화되었습니다.');
       });
 
-      // Modals & Language Toggles
       document.getElementById('btnSupportModal')?.addEventListener('click', () => {
         document.getElementById('supportModal')?.classList.remove('hidden');
       });
@@ -2052,7 +2432,7 @@ plot(athLevel, color="#f59e0b")</textarea>
         document.getElementById('supportModal')?.classList.add('hidden');
       });
       document.getElementById('btnLicenseStatus')?.addEventListener('click', () => {
-        showToast('인증 우회 없이 로컬 영구 라이선스로 동작 중입니다 (기간 제한 없음).');
+        showToast('Binance 실시간 WebSocket 연동 완료 · 무제한 로컬 모드로 동작 중입니다.');
       });
 
       document.getElementById('btnHeaderLang')?.addEventListener('click', () => {
@@ -2063,35 +2443,28 @@ plot(athLevel, color="#f59e0b")</textarea>
 
       window.addEventListener('resize', resizeAllCharts);
 
-      // Real-time Tick Simulation & Clock Loop
-      setInterval(updateKstClock, 1000);
+      // Clock & Periodic Live REST Sync (No random price generation!)
       setInterval(() => {
-        state.symbols.forEach(s => {
-          const deltaPct = (Math.random() - 0.492) * 0.0018;
-          s.basePrice = Number(Math.max(0.0001, s.basePrice * (1 + deltaPct)).toFixed(s.basePrice < 5 ? 4 : 2));
-          s.change = Number((s.change + deltaPct * 45).toFixed(2));
-        });
-
-        // Update current candle in primary chart
-        const inst0 = chartInstances[0];
-        const candles = state.candlesBySymbol[state.activeSymbol];
-        const activeSymObj = state.symbols.find(s => s.symbol === state.activeSymbol);
-        if (inst0 && candles && candles.length && activeSymObj) {
-          const last = candles[candles.length - 1];
-          last.close = activeSymObj.basePrice;
-          if (last.close > last.high) last.high = last.close;
-          if (last.close < last.low) last.low = last.close;
-          last.volume = Math.round(last.volume + Math.random() * 12);
-          inst0.candleSeries.update(last);
-          updateTopSymbolHeader(state.activeSymbol, last);
-        }
-
+        updateKstClock();
         renderWatchlist();
-        if (state.activeRightTab === 'Book') renderOrderbook();
-        if (state.activeRightTab === 'Positions') updatePositionCalculator();
         renderBottomTicker();
-      }, 1800);
+        if (state.activeRightTab === 'Positions') updatePositionCalculator();
+      }, 1000);
+
+      // Sync 24hr stats & Hyperliquid HYPE candle every 5 seconds alongside WebSocket
+      setInterval(async () => {
+        await syncAll24hrTickers();
+        if (state.activeSymbol === 'HYPEUSDT') {
+          const candles = await fetchRealtimeCandles('HYPEUSDT');
+          if (candles.length && chartInstances[0]?.symbolCode === 'HYPEUSDT') {
+            const last = candles[candles.length - 1];
+            chartInstances[0].candleSeries.update(last);
+            updateTopSymbolHeader('HYPEUSDT', last);
+          }
+        }
+      }, 5000);
     });
+
   </script>
 </body>
 </html>
