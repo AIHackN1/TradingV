@@ -1,115 +1,14 @@
-# TradingV · N1 Terminal
+# Zetro System × N1 Terminal (TradingV Update)
 
-개인 차트 · SOXL TradingView 공식 차트 · 그리기 · APEX EMA 구름대 · 확정봉 알람 워크스페이스.
+`https://ath.zetro.io/` (Zetro System) 레이아웃과 `https://tradings-black.vercel.app/` (`AIHackN1/TradingV`)의 N1 엔진 기능을 통합한 업데이트 패키지입니다.
 
-기준 저장소: https://github.com/AIHackN1/TradingV
+## 주요 업데이트 내역
+1. **Zetro System 상단 헤더 및 멀티 차트 프리셋**: `Single chart`, `Bitcoin split`, `Altcoin split`, `Majors comp` 1·2·4분할 레이아웃 즉시 전환
+2. **차트 컨트롤 바**: 종목 드롭다운(`BTC USDT perp` 등), 타임프레임(`1m`, `5m`, `10m`, `15m`, `1h`, `4h`, `D`, `W`), `ATH indicators` 설정, `Layout · Saved`, `Share chart`, `Split screen`
+3. **N1 엔진 + Zetro ATH 지표 통합**: `APEX · Four Range Cloud`, `EMA 20/50 구름대`, `Zetro ATH/ATL 자동 고저점 수평선`, `Volume Profile (POC)` 동시 지원 및 `TradingView 위젯` 전환 토글
+4. **우측 11개 아이콘 탭 & 사이드바**: `Watch`(Pinned/Favorites/Index), `Indicators`, `Screener`, `Book`(실시간 호가창), `Masters`(고래 롱/숏 비율), `Alerts`(N1 봉 마감 알람 & 사운드), `News`, `Positions`(선물 청산가 계산기), `Events`, `Objects`(드로잉 객체 관리), `Scripts`(수식 편집 & JSON 백업)
+5. **하단 상태 바**: 실시간 코인 티커, `한국어로 보기 | English` 다국어 전환, `KST` 실시간 시계
+6. **무제한 로컬 모드**: 로그인이나 7일 체험 제한 없이 `localStorage` 기반으로 영구 동작
 
-진행 기준과 다음 작업: [ROADMAP](docs/ROADMAP.md), [진행 기록](docs/PROGRESS.md).
-
-## 현재 통합 상태
-
-실제 운영: https://tradings-black.vercel.app
-
-사용자가 요청한 최종 형태는 ATH처럼 단일 TradingView 차트에서 자체 지표·그리기·알람을 함께 쓰는 것이다. 현재 두 보기로 나뉜 구현은 최종 완료가 아니다. ATH 실제 페이지는 Charting Library 32.2를 불러온다. 해당 정식 라이브러리 파일과 사용권은 현재 저장소에 없으며, 무료 iframe 위젯에는 사용자 Pine를 넣을 수 없다. 구체적인 전환 조건은 ROADMAP에 기록했다.
-
-종목/시간봉을 바꿀 때 이전 수동 가격 범위가 남지 않도록 두 축을 초기화한다. 차트 우측 상단의 초기화 버튼으로 최근140봉과 가격축 자동맞춤을 복원할 수 있다.
-
-## 사용 매뉴얼 · 관심종목 · 알람
-
-앱 상단 책 아이콘(도움말)과 `/manual.html`에서 전체 매뉴얼을 읽는다. 관심종목 옆 +에서 Binance USDT 현물(예: ADA) 또는 미국 주식(예: NVDA, QQQ, 거래소 선택)을 추가한다. 실제 시세 조회에 성공해야 저장한다. 주식 자체 분석/알람은 정규장 일봉이며 추가 목록은 현재 브라우저에 저장되고 전체 JSON백업에 포함된다.
-
-공개식 보조지표 5개: 볼린저20×2, 이전20봉 돈치안 돌파채널, ATR10×3슈퍼트렌드, UTC 세션 VWAP(암호화폐 분봉), 최근200봉 거래량 프로파일 근사. 표시 토글과 알람8종(BB/DC/ST/VWAP 상하향)을 제공한다. [원본 조사·공식 수식·차이](docs/INDICATOR-SOURCES.md)를 확인한다. ATH 잠금 지표의 복제본이나 수익률 베스트 순위가 아니다.
-
-알람은 확정봉 기준·봉별 중복방지·1회자동중지이며 실제 데이터 재조회와 앱내 기록/토스트를 제공한다. 등록시각 `armedAt`을 사용해 첫 조회가 늦어져도 등록 이후 닫힌 봉을 놓치지 않는다. 재접속은 새 감시 세션으로 시작한다. 브라우저/기기 중지 중 감시 및 서버푸시는 지원하지 않으며 TradingView 서버 알람과 동등하지 않다. 알림 전달 테스트는 실제 시장 신호와 별도다. 시세 조회 중 CSV/샘플 전환·규칙 중지/삭제가 발생하면 늦게 도착한 응답으로 알람을 처리하지 않는다. CSV 중지 상태는 해당 종목에만 적용되어 다른 실시간 종목의 알람은 계속 감시한다.
-
-## 실행
-
-```sh
-npm ci
-npm run dev
-```
-
-프로덕션 빌드: `npm run build`, 계산 엔진 검증: `npm test`.
-Node.js 22 이상 권장. Vercel에서는 GitHub 저장소를 Import하고 Framework를 Vite로 선택하면 됩니다. `vercel.json`에 빌드 및 출력 경로가 포함되어 있습니다. 시세 데이터는 공개 API를 사용하므로 API 키가 필요하지 않습니다.
-
-## SOXL과 그리기
-
-- **TradingView 보기**: SOXL(AMEX:SOXL) 공식 차트, 내장 왼쪽 그리기 도구/지표/봉 유형/날짜 범위. 위젯의 지연 데이터 표시를 따른다. 이 외부 위젯과 앱 자체 지표·알람은 별도이다.
-- **내 지표·그리기**: 왼쪽 추세선/레이/수평선/수직선/사각형/피보나치/자유곡선/텍스트/가격·시간 측정/지우개. 시작점과 끝점을 차례로 클릭. 선택 후 드래그 이동 또는 기준점 수정. Delete 삭제, Ctrl+Z 되돌리기, Ctrl+Shift+Z 다시 실행.
-- 자체 그림은 종목/시간봉별 시간·가격 좌표로 자동 저장. 앱 전체 백업에 포함된다. TradingView 위젯 그림은 이 백업과 별도이며 제공자의 저장 지원 범위에 따른다.
-- SOXL 자체 분석용 Yahoo Finance 정규장 일봉 API 어댑터를 포함하지만 공급자의 레이트리밋/가용성에 의존한다. 구현과 실제 운영 시세 수신 성공을 구분한다. 지연 또는 일봉 데이터를 실시간으로 표시하지 않는다.
-- CSV 가져오기(time/date, open, high, low, close, volume)로 자체 SOXL 지표·그리기를 사용할 수 있다. 고정 CSV는 실시간 알람의 입력으로 쓰지 않는다.
-
-## 구현한 기능
-
-- TradingView Lightweight Charts 5.2.1 캔들, 줌·이동, 거래량, RSI(14).
-- Binance Spot USDT 8종(BTC, ETH, SOL, XRP, BNB, DOGE, AVAX, LINK) 및 별도 SOXL 공식 차트, 1m/5m/15m/1h/4h/1d.
-- 초기 1,000봉 REST 조회, WebSocket 업데이트, 15초 REST 갱신.
-- APEX FINAL v1.7 원본의 현재 차트 4색 EMA 구름대 이식: 144/155, 89/100, 55/65, 34/40.
-- 지표 기간·색상 변경, 안전한 JSON 설정 가져오기·내보내기.
-- 가격 상/하향 돌파, EMA 골든/데드크로스, RSI 상/하향 돌파 알람.
-- 확정봉 종가 기준 판정, 여러 종목·시간봉 감시, 반복/1회 알람, 기록·CSV 내보내기.
-- 브라우저 알림(권한 필요), 소리, 로컬 저장·백업.
-- 시세 실패 화면 및 **사용자가 명시적으로 선택하는** 샘플 모드. 샘플에서는 알람 감시 중지.
-
-## 현재 범위와 제한
-
-1. TradingView 웹사이트 전체 소스를 복제한 앱이 아닙니다. 공개 오픈소스 차트 엔진을 사용한 독립 앱입니다.
-2. Pine Script를 직접 실행하지 않습니다. ASGMA·스윕·스파이크는 raw 후보 구성요소를 제공하며, 직전 확정1h/4h 레짐·점수/CI/터널 필터는 별도 점수필터 시그널로 이식했습니다. 분할청산·포지션·주문/체결 로직은 미포함입니다. EMA 교차 알람은 APEX 전략 진입 신호와 다릅니다.
-3. 현물(Spot)과 무기한 선물(.P)은 별도 데이터 상품입니다. 선물 자체 시세 수신은 공급자의 지역 제한에 영향을 받습니다. 동일 상품·데이터 길이·초기화로 맞추기 전 수치 일치를 주장할 수 없습니다.
-4. 알람은 페이지가 열려 있고 기기가 깨어 있을 때만 감시합니다. 탭 백그라운드 제한/절전/종료에서는 실행이 보장되지 않습니다. 24시간 서버 알람은 아직 없습니다.
-5. 신규/재시작 알람은 등록·재시작 시각 이전 신호를 재생하지 않습니다. 첫 조회가 늦어져도 해당 시각 이후 닫힌 봉은 검사합니다. 연결 중단에서 돌아오면 조회 가능한 1,000봉 범위 안에서 누락 확정봉을 순서대로 확인합니다.
-6. 설정은 동일 브라우저·동일 도메인의 localStorage에 저장됩니다. 계정·클라우드 동기화는 없습니다. 백업에서 가져온 알람은 중지 상태로 복원됩니다.
-7. 실거래 주문·거래소 계정 연동·자동매매는 없습니다.
-8. 거래소 또는 지역 제한으로 시세 연결이 실패할 수 있습니다. 서버 프록시도 외부 제공자의 가용성에 의존합니다.
-9. `https://ath.zetro.io/` 실제 UI와 Charting Library 경로·지표 목록을 확인했습니다. 잠금 지표 원본 수식은 확보하지 못했으며 전체 코드 복제나 시각적/기능적 동일성을 검증한 것은 아닙니다.
-
-## REA 조사
-
-공식 `morluto/rea` 저장소와 `rea-agents@6.7.0`을 확인하고 Lightweight Charts 패키지에 정적 분석을 실행했습니다. 이 환경의 procps `ps`가 `fatal library error, lookup self`로 실패하여 REA가 자식 프로세스 소유권 검증 단계에서 `capability_unavailable`을 반환했습니다. 인벤토리 일부만 확보했으며 역공학 분석 성공으로 간주하지 않습니다. 보호 장치를 우회하지 않았습니다. 자세한 기록: [docs/rea-investigation.md](docs/rea-investigation.md).
-
-## 개발 구조
-
-- `src/engine.js`: 지표 계산·규칙 검증·확정봉 이벤트 판정(순수 함수).
-- `src/alert-monitor.js`: 종목·시간봉별 조회 공유와 비동기 응답 후 현재 규칙/감시중지 상태 재검사.
-- `src/cloud.js`: 차트 렌더링 주기에 맞춘 두 EMA 사이의 구름 채움.
-- `src/drawings.js`, `src/drawing-geometry.js`: 자체 그리기·좌표·저장/편집.
-- `src/stock-data.js`: SOXL 별도 공급자 응답 및 CSV 변환.
-- `public/tradingview.html`: 공식 TradingView 위젯.
-- `src/main.js`: UI, 시세 연결, 알람 모니터, JSON/CSV 입출력.
-- `api/market.js`: Vercel 공개 시세 프록시. 허용한 종목·시간봉·요청 종류만 조회.
-- `tests/engine.test.js`: 계산·확정봉·교차·재연결·중복 및 입력 검증.
-
-## 라이선스/표기
-
-차트 엔진: [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts), Apache-2.0. 차트 내 TradingView attribution과 홈페이지 링크를 유지합니다. 아이콘: Lucide, ISC. 라이브러리 고지: `public/licenses/`.
-
-REA(MIT)는 조사 도구이며 런타임 의존성이나 TradingView 서버 복제 도구가 아닙니다. 참고 사이트의 비공개 코드나 유료 기능을 가져오지 않았습니다.
-
-## APEX 지표 모음 (2026-10-23)
-
-`APEX FINAL v1.7` 원본 전체는 `public/indicators/`에 보관하고 앱에서 다운로드할 수 있습니다. 현재 차트 EMA 구름대와 ASGMA 모멘텀·WhaleFlow 유동성 스윕·ATR 스파이크 구성요소를 제공합니다. 3종 후보의 상·하방 알람 6개도 추가했습니다. 후보 마커는 확정봉만 표시하며 개별 표시 설정과 백업을 지원합니다.
-
-구성요소 계산은 원본의 일부입니다. 점수필터에 HTF 레짐·점수 게이트와 시그널 기준 대기를 추가했지만 포지션·분할청산이 적용된 원본 전략의 주문 신호와 동일하지 않습니다. 앱 내 문구도 이를 구분합니다. 원본과 동일한 시장/히스토리에서 수치 대조가 추가로 필요합니다. 코드의 과거 수익률 주석은 원본 기록이며 이 앱이 재검증한 성과가 아닙니다.
-
-현재 앱 자체에 필수 API 키/패스워드 환경변수는 없습니다. Vercel 배포 관리 인증은 앱의 런타임 환경변수와 별도입니다. 관리 API의 프로젝트 조회404를 앱의 키 누락 또는 페이지404로 단정하지 마세요.
-
-## 선물·APEX 점수필터 시그널 (2026-10-23)
-
-- 기본 목록에 Binance USDT 무기한 **SOXLUSDT.P, BTCUSDT.P, ETHUSDT.P**. ETF SOXL/현물과 별도 ID로 그림·알람 분리. Futures REST `/fapi/v1/klines`, 시장 WS `/market/ws/{symbol}@kline_{interval}` 사용. .P는 UI/TradingView 식별자이며 REST는 .P 없이 요청한다.
-- Binance 공식 SOXLUSDT 상장 공지: https://www.binance.com/en-AE/support/announcement/detail/a2bce2686fc64a61b44c4335facafe7f . 지역제한403/451이면 자체 시세·감시 오류로 처리하며 현물 대체/접근 우회 없이 공식 차트 버튼을 제공한다. 코드 연결과 실제 공급자 수신 성공은 다르다.
-- `src/apex-signals.js`: 원본의 직전 확정1h/4h EMA155/162, 방향·거래량Z·델타·CI 점수, 최소점수/CI/터널/반대 스파이크 필터. 신호 대기8봉은 주문 체결 대신 표시 신호 기준. 1m/5m/15m/1h만 지원한다. 진입 화면 부분 이식이며 원본 전체 전략/성과 동등성은 미검증이다.
-- **이 시그널마다 알람**: 현재 설정을 복사해 LONG/SHORT 반복 감시. 기본값 반복, 확정봉·중복방지·방향/이유 기록. 설정 변경 후 기존 규칙 중지하고 재등록. **선택 후보마다 알람**은 원본 구성요소의 raw 후보를 묶으며 점수필터와 다르다.
-- 페이지 종료·절전 중 전달/24시간 서버 감시·푸시는 여전히 미구현이다. 자체 지표와 공식 iframe의 단일 차트 통합도 완료되지 않았다.
-
-## 사용자 지표 등록 · 단일 계산 경로
-
-`내가 추가한 지표 → 지표 추가`에서 EMA/SMA·기간·가격 소스를 입력하거나 `tradingv-indicator` JSON을 가져온다. 선/확정봉 마커와 반복 알람은 같은 평가기를 사용한다. JSON 예제는 `/examples/ema-cross.json`. 지표12개, 선8개, 교차 시그널4개 제한. 등록 당시 지표를 알람에 복사하며 표시를 끄거나 설정을 수정해도 기존 알람 계산은 유지한다. 전체 백업·중지 상태 복원 지원.
-
-기존 ‘지표 가져오기’는 실제 동작에 맞게 ‘설정 가져오기’로 고쳤다. Pine/JS를 그대로 실행하거나 첨부 APEX 전체 전략을 변환하는 기능은 아니다. 외부 위젯에는 표시되지 않는다. [최종 통합의 실제 조건·공식 라이선스 근거](docs/INTEGRATION-STATUS.md)를 확인한다. 두 보기는 여전히 최종 통합 미완료다.
-
-## 시간봉·차트 바로 위 시그널 상태
-
-1m/5m/**10m**/15m/**30m**/1h/4h/1d를 선택한다. Binance 자체 10m은 동일 상품의 UTC5m 두 봉을 합산하며 15초 REST 갱신한다. 확정 시각은10분 끝이고 누락 과거봉을 만들지 않는다. 차트 바로 위에서 점수필터/원시후보 건수·표시 상태를 확인하고 후보 토글·최근 표시 마커 이동·시그널 설정 이동을 사용한다. 원시 후보는 전략 주문 시그널과 다르며, 공식 위젯에서는 자체APEX 미연결을 표시한다.
-
-확정봉 판정은 로컬 현재시각과 실제 시세 관측시각 중 이른 시각을 따른다. 봉 마감 전 조회된 미완성 가격은 시간이 지났다는 이유만으로 확정되지 않는다. 새 시세 조회/거래소 WebSocket 이벤트를 받은 후 판정하며, 오래된 REST/이전 종목 HTF 응답이 최신 차트 상태를 덮어쓰지 않게 검사한다.
+## 배포 방법 (GitHub & Vercel)
+`AIHackN1/TradingV` 저장소의 루트 `index.html`을 본 패키지의 파일로 교체 후 커밋·푸시하면 Vercel(`https://tradings-black.vercel.app/`)에 자동 반영됩니다.
